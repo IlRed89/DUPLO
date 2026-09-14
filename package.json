@@ -70,7 +70,8 @@
         "dir"
       ],
       "icon": "build/icon.png",
-      "category": "Utility"
+      "category": "Utility",
+      "executableName": "DupFinder"
     }
   }
 }
