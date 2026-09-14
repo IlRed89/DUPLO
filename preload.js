@@ -61,6 +61,28 @@ contextBridge.exposeInMainWorld('dupFinderAPI', {
   showItemInFolder: (filePath) => ipcRenderer.invoke('shell:show-item', filePath),
 
   /**
+   * Rinomina un file sul disco (stessa cartella). Il Renderer aggiorna il DOM col newPath.
+   * @param {string} oldPath - Percorso assoluto attuale
+   * @param {string} newName - Nuovo nome file (basename; senza slash)
+   * @returns {Promise<{success: boolean, oldPath?: string, newPath?: string, error?: string, code?: string}>}
+   */
+  renameFile: (oldPath, newName) => ipcRenderer.invoke('rename-file', { oldPath, newName }),
+
+  /**
+   * Apre la cartella del file nel file manager nativo (`shell.showItemInFolder`).
+   * @param {string} filePath
+   * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+   */
+  openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
+
+  /**
+   * Imposta il tema delle finestre native Electron: 'dark' | 'light' | 'system'.
+   * @param {'dark'|'light'|'system'} source
+   * @returns {Promise<{success: boolean, themeSource?: string, shouldUseDarkColors?: boolean, error?: string}>}
+   */
+  setNativeTheme: (source) => ipcRenderer.invoke('set-native-theme', source),
+
+  /**
    * Esporta il report dei risultati in JSON o CSV tramite dialogo di salvataggio.
    * @param {string} format - 'json' | 'csv'
    * @param {Array<Object>} groups - I gruppi di duplicati da esportare

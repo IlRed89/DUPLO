@@ -6,7 +6,7 @@
  * e l'esecuzione asincrona del motore di ricerca duplicati.
  */
 
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
@@ -297,6 +297,185 @@ ipcMain.handle('shell:show-item', async (_event, filePath) => {
   } catch (err) {
     logger.error(`[IPC] Errore apertura file manager per "${normalized}": ${err.message}`);
     return false;
+  }
+});
+
+/**
+ * Valori ammessi per nativeTheme.themeSource (Electron).
+ * Qualsiasi altro input viene rifiutato: non vogliamo stati tema indefinibili.
+ * @type {ReadonlySet<string>}
+ */
+const ALLOWED_NATIVE_THEMES = new Set(['dark', 'light', 'system']);
+
+/**
+ * Attende un breve intervallo (retry unico su EBUSY: file lockato da antivirus/indexer).
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Costruisce il nuovo path nella *stessa* cartella del file originale.
+ * Il "nuovo nome" deve essere solo un basename: niente slash, niente `..`.
+ *
+ * @param {string} oldPath - Percorso assoluto attuale
+ * @param {string} newName - Nome file richiesto dall'utente (con o senza estensione)
+ * @returns {{ ok: true, destPath: string, finalName: string } | { ok: false, error: string }}
+ */
+function resolveRenameDestination(oldPath, newName) {
+  const trimmed = String(newName || '').trim();
+  if (!trimmed) {
+    return { ok: false, error: 'Il nuovo nome non può essere vuoto' };
+  }
+  if (/[/\\]/.test(trimmed) || trimmed.includes('\0') || trimmed === '.' || trimmed === '..') {
+    logger.warn(`[IPC] rename-file rifiutato: nome non valido "${trimmed}"`);
+    return { ok: false, error: 'Il nuovo nome non può contenere percorsi o caratteri riservati' };
+  }
+  const base = path.basename(trimmed);
+  if (base !== trimmed) {
+    return { ok: false, error: 'Il nuovo nome deve essere un nome file, non un percorso' };
+  }
+
+  const dir = path.dirname(oldPath);
+  const oldExt = path.extname(oldPath);
+  // Se l'utente omette l'estensione, conserviamo quella originale (es. foto.jpg → foto-2.jpg).
+  const finalName = path.extname(base) ? base : `${base}${oldExt}`;
+  const destPath = path.join(dir, finalName);
+  if (path.dirname(destPath) !== dir) {
+    return { ok: false, error: 'Destinazione di rinomina fuori dalla cartella originale' };
+  }
+  return { ok: true, destPath, finalName };
+}
+
+/**
+ * Fase 4.0 — Rinomina un file sul disco senza rifare la scansione.
+ * Payload: { oldPath, newName }. Retry unico su EBUSY.
+ *
+ * @returns {Promise<{success: boolean, oldPath?: string, newPath?: string, error?: string, code?: string}>}
+ */
+ipcMain.handle('rename-file', async (_event, payload) => {
+  const oldPathRaw = payload && payload.oldPath;
+  const newNameRaw = payload && payload.newName;
+  const oldPath = normalizeCrossPlatformPath(oldPathRaw);
+
+  logger.info(`[IPC] rename-file richiesto: "${oldPath}" → nome "${newNameRaw}"`);
+
+  if (!oldPath) {
+    logger.warn('[IPC] rename-file: percorso sorgente vuoto');
+    return { success: false, error: 'Percorso file mancante', code: 'EINVAL' };
+  }
+
+  const dest = resolveRenameDestination(oldPath, newNameRaw);
+  if (!dest.ok) {
+    return { success: false, error: dest.error, code: 'EINVAL' };
+  }
+
+  if (dest.destPath === oldPath) {
+    logger.info(`[IPC] rename-file: nome invariato per "${oldPath}"`);
+    return { success: true, oldPath, newPath: oldPath };
+  }
+
+  const attemptRename = async () => {
+    await fsp.rename(oldPath, dest.destPath);
+  };
+
+  try {
+    await fsp.access(oldPath, fs.constants.F_OK);
+  } catch (err) {
+    logger.error(`[IPC] rename-file sorgente assente "${oldPath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
+    return { success: false, error: err.message, code: err.code || 'ENOENT' };
+  }
+
+  try {
+    await fsp.access(dest.destPath, fs.constants.F_OK);
+    logger.warn(`[IPC] rename-file bloccato: destinazione già esistente "${dest.destPath}"`);
+    return { success: false, error: `Esiste già un file chiamato "${dest.finalName}"`, code: 'EEXIST' };
+  } catch (existsErr) {
+    if (existsErr.code !== 'ENOENT') {
+      logger.error(`[IPC] rename-file stat destinazione "${dest.destPath}": [${existsErr.code || 'UNKNOWN'}] ${existsErr.message}`);
+      return { success: false, error: existsErr.message, code: existsErr.code || 'ERR' };
+    }
+  }
+
+  try {
+    try {
+      await attemptRename();
+    } catch (firstErr) {
+      if (firstErr.code === 'EBUSY' || firstErr.code === 'EPERM' || firstErr.code === 'EACCES') {
+        logger.warn(`[IPC] rename-file ${firstErr.code} su "${oldPath}", retry dopo 150ms`);
+        await sleep(150);
+        await attemptRename();
+      } else {
+        throw firstErr;
+      }
+    }
+    logger.info(`[IPC] rename-file ok: "${oldPath}" → "${dest.destPath}"`);
+    return { success: true, oldPath, newPath: dest.destPath };
+  } catch (err) {
+    logger.error(`[IPC] rename-file fallito "${oldPath}" → "${dest.destPath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
+    return { success: false, error: err.message, code: err.code || 'ERR' };
+  }
+});
+
+/**
+ * Fase 4.0 — Apre il file manager nativo e seleziona il file.
+ * Usa ESCLUSIVAMENTE `shell.showItemInFolder` (nessun openPath / openExternal sul file).
+ *
+ * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+ */
+ipcMain.handle('open-file-location', async (_event, filePath) => {
+  const normalized = normalizeCrossPlatformPath(filePath);
+  logger.info(`[IPC] open-file-location: shell.showItemInFolder("${normalized}")`);
+
+  if (!normalized) {
+    logger.warn('[IPC] open-file-location: percorso vuoto');
+    return { success: false, error: 'Percorso file mancante' };
+  }
+
+  try {
+    await fsp.access(normalized, fs.constants.F_OK);
+  } catch (err) {
+    logger.error(`[IPC] open-file-location file inesistente "${normalized}": [${err.code || 'UNKNOWN'}] ${err.message}`);
+    return { success: false, error: err.message, code: err.code || 'ENOENT' };
+  }
+
+  try {
+    shell.showItemInFolder(normalized);
+    logger.info(`[IPC] open-file-location: file manager aperto per "${normalized}"`);
+    return { success: true, path: normalized };
+  } catch (err) {
+    logger.error(`[IPC] open-file-location fallito "${normalized}": ${err.message}`);
+    return { success: false, error: err.message };
+  }
+});
+
+/**
+ * Fase 4.0 — Allinea il tema delle finestre native (dialoghi, menu) a light/dark/system.
+ * `nativeTheme.themeSource` è la API Electron ufficiale; i dialoghi "Seleziona cartella"
+ * seguono questo valore sul sistema ospite.
+ *
+ * @returns {Promise<{success: boolean, themeSource?: string, shouldUseDarkColors?: boolean, error?: string}>}
+ */
+ipcMain.handle('set-native-theme', async (_event, source) => {
+  const requested = String(source || '').trim().toLowerCase();
+  logger.info(`[IPC] set-native-theme richiesto: "${requested}"`);
+
+  if (!ALLOWED_NATIVE_THEMES.has(requested)) {
+    logger.warn(`[IPC] set-native-theme rifiutato: valore non ammesso "${source}"`);
+    return { success: false, error: 'Tema non valido: usare dark, light o system' };
+  }
+
+  try {
+    nativeTheme.themeSource = requested;
+    const applied = nativeTheme.themeSource;
+    const dark = Boolean(nativeTheme.shouldUseDarkColors);
+    logger.info(`[IPC] set-native-theme applicato: themeSource="${applied}" shouldUseDarkColors=${dark}`);
+    return { success: true, themeSource: applied, shouldUseDarkColors: dark };
+  } catch (err) {
+    logger.error(`[IPC] set-native-theme fallito: ${err.message}`);
+    return { success: false, error: err.message };
   }
 });
 
