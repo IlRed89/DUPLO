@@ -18,7 +18,7 @@ const https = require('https');
 const zlib = require('zlib');
 
 const STAGED_DIR = path.join(__dirname, '..', 'build', 'ffmpeg-staged');
-const FFMPEG_RELEASES = ['b6.1', 'b6.0', 'b5.2'];
+const FFMPEG_RELEASES = ['b6.0', 'b5.2'];
 
 /**
  * @param {string} message
@@ -161,7 +161,10 @@ async function stageFfmpegResources(context) {
   try {
     ensureDir(STAGED_DIR);
     const platform = (context && context.electronPlatformName) || process.platform;
-    const arch = (context && context.arch) || process.arch;
+    // Arch.ia32 vale 0: non usare `||` altrimenti si cade su process.arch (x64 in CI Linux).
+    const arch = context && Object.prototype.hasOwnProperty.call(context, 'arch')
+      ? context.arch
+      : process.arch;
     const isWin = platform === 'win32' || platform === 'win';
     const ffmpegName = isWin ? 'ffmpeg.exe' : 'ffmpeg';
     const ffprobeName = isWin ? 'ffprobe.exe' : 'ffprobe';

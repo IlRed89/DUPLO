@@ -63,14 +63,6 @@
         "to": "ffmpeg"
       },
       {
-        "from": "node_modules/ffmpeg-static",
-        "to": "ffmpeg",
-        "filter": [
-          "ffmpeg",
-          "ffmpeg.exe"
-        ]
-      },
-      {
         "from": "node_modules/ffprobe-static/bin",
         "to": "ffprobe-bin"
       }
