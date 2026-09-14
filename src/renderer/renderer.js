@@ -82,7 +82,10 @@ const dom = {
   statWastedSpace: document.getElementById('statWastedSpace'),
   resultsToolbar: document.getElementById('resultsToolbar'),
   resultsScrollContainer: document.getElementById('resultsScrollContainer'),
+  resultsList: document.getElementById('resultsList'),
   emptyPlaceholder: document.getElementById('emptyPlaceholder'),
+  emptyPlaceholderTitle: document.getElementById('emptyPlaceholderTitle'),
+  emptyPlaceholderText: document.getElementById('emptyPlaceholderText'),
   btnExportJSON: document.getElementById('btnExportJSON'),
   btnExportCSV: document.getElementById('btnExportCSV'),
   btnBatchClean: document.getElementById('btnBatchClean'),
@@ -101,9 +104,12 @@ const dom = {
 document.addEventListener('DOMContentLoaded', () => {
   logToMain('info', 'Interfaccia Renderer inizializzata con successo.');
 
-  // Listener per aggiunta cartella
+  // Cartelle: dialogo nativo Electron (non un <input type="file"> HTML).
   dom.btnAddFolder.addEventListener('click', onAddFolderClick);
   dom.btnClearFolders.addEventListener('click', onClearFoldersClick);
+
+  // Ogni variazione dei filtri viene scritta nel log persistente (debug infallibile).
+  bindCriteriaLogging();
 
   // Listener per avvio e stop scansione
   dom.btnStartScan.addEventListener('click', onStartScanClick);
@@ -220,26 +226,48 @@ function renderFolderList() {
   });
 }
 
-// =========================================================================
-// GESTIONE SCANSIONE E STATISTICHE
-// =========================================================================
+/**
+ * Collega i checkbox e i campi filtro al logger: ogni click/change dell'utente
+ * produce una riga nel file di log (e in console in sviluppo).
+ */
+function bindCriteriaLogging() {
+  const checkboxes = [
+    ['chkMatchSize', 'Stessa Dimensione'],
+    ['chkMatchHash', 'Hash Contenuto'],
+    ['chkMatchName', 'Stesso Nome'],
+    ['chkMatchExtension', 'Stessa Estensione'],
+    ['chkMatchDate', 'Stessa Data'],
+    ['chkIncludeHidden', 'Includi nascosti']
+  ];
+  checkboxes.forEach(([id, label]) => {
+    const el = dom[id];
+    if (!el) return;
+    el.addEventListener('change', () => {
+      logToMain('info', `Filtro "${label}" ${el.checked ? 'attivato' : 'disattivato'}`);
+    });
+  });
+  dom.selectHashAlgo.addEventListener('change', () => {
+    logToMain('info', `Algoritmo hash impostato a ${dom.selectHashAlgo.value}`);
+  });
+  dom.inputMinSize.addEventListener('change', () => {
+    logToMain('info', `Dimensione minima impostata a ${dom.inputMinSize.value} KB`);
+  });
+  dom.inputExtFilter.addEventListener('change', () => {
+    logToMain('info', `Filtro estensioni impostato a "${dom.inputExtFilter.value}"`);
+  });
+}
 
 /**
- * Avvia la scansione raccogliendo i parametri impostati dall'utente.
+ * Legge i checkbox e i campi della sidebar e costruisce l'oggetto ScanCriteria
+ * atteso dal Main Process (src/scanner.js).
+ *
+ * @returns {object|null} criteri, oppure null se l'utente non ha scelto nessun parametro
  */
-async function onStartScanClick() {
-  if (state.selectedFolders.length === 0) {
-    alert('Seleziona almeno una cartella da scansionare prima di procedere.');
-    return;
-  }
-
-  // Prepara i criteri di confronto
+function collectScanCriteria() {
   const extFilterRaw = dom.inputExtFilter.value.trim();
-  let includeExts = [];
-  if (extFilterRaw) {
-    includeExts = extFilterRaw.split(',').map(e => e.trim()).filter(Boolean);
-  }
-
+  const includeExts = extFilterRaw
+    ? extFilterRaw.split(',').map((e) => e.trim()).filter(Boolean)
+    : [];
   const minSizeKB = parseInt(dom.inputMinSize.value, 10) || 0;
 
   const criteria = {
@@ -256,7 +284,40 @@ async function onStartScanClick() {
     includeHidden: dom.chkIncludeHidden.checked
   };
 
+  // Senza nessun criterio tutti i file finirebbero nello stesso bucket: è un falso positivo.
+  const anyCriterion = criteria.matchSize || criteria.matchHash || criteria.matchName
+    || criteria.matchExtension || criteria.matchDate;
+  if (!anyCriterion) {
+    return null;
+  }
+  return criteria;
+}
+
+// =========================================================================
+// GESTIONE SCANSIONE E STATISTICHE
+// =========================================================================
+
+/**
+ * Avvia la scansione raccogliendo i parametri impostati dall'utente.
+ */
+async function onStartScanClick() {
+  logToMain('info', 'Utente ha cliccato "Avvia Scansione"');
+
+  if (state.selectedFolders.length === 0) {
+    logToMain('warn', 'Avvio scansione rifiutato: nessuna cartella selezionata');
+    alert('Seleziona almeno una cartella da scansionare prima di procedere.');
+    return;
+  }
+
+  const criteria = collectScanCriteria();
+  if (!criteria) {
+    logToMain('warn', 'Avvio scansione rifiutato: nessun parametro di confronto attivo');
+    alert('Attiva almeno un parametro di confronto (consigliati: Stessa Dimensione + Hash Contenuto).');
+    return;
+  }
+
   logToMain('info', `Avvio scansione con criteri: ${JSON.stringify(criteria)}`);
+  handleScanProgress.lastPhase = null;
 
   // Aggiorna stato UI
   state.isScanning = true;
@@ -313,6 +374,12 @@ function handleScanProgress(data) {
     state.totalFilesScanned = data.filesCount;
   }
 
+  // Log di debug per ogni cambio fase (il file di log diventa la "scatola nera" della scansione).
+  if (data.phase && data.phase !== handleScanProgress.lastPhase) {
+    logToMain('debug', `Progresso scansione: fase=${data.phase} file=${data.filesCount || 0}`);
+    handleScanProgress.lastPhase = data.phase;
+  }
+
   if (data.phase === 'collecting') {
     dom.progressTrack.className = 'progress-track indeterminate';
     dom.progressPhaseText.querySelector('span').textContent = 'Raccolta e indicizzazione file...';
@@ -342,14 +409,21 @@ function handleScanProgress(data) {
  * Mostra a schermo i gruppi di duplicati trovati e le statistiche aggregate.
  */
 function renderResults() {
-  dom.resultsScrollContainer.innerHTML = '';
+  // Svuota solo l'elenco gruppi: il placeholder resta nel DOM (bugfix stato vuoto).
+  if (dom.resultsList) {
+    dom.resultsList.innerHTML = '';
+  }
 
   if (state.duplicateGroups.length === 0) {
     dom.statsBanner.style.display = 'none';
     dom.resultsToolbar.style.display = 'none';
     dom.emptyPlaceholder.style.display = 'flex';
-    dom.emptyPlaceholder.querySelector('h2').textContent = 'Nessun duplicato trovato';
-    dom.emptyPlaceholder.querySelector('p').textContent = 'Tutti i file analizzati nelle cartelle selezionate sono univoci secondo i criteri impostati.';
+    if (dom.emptyPlaceholderTitle) {
+      dom.emptyPlaceholderTitle.textContent = 'Nessun duplicato trovato';
+    }
+    if (dom.emptyPlaceholderText) {
+      dom.emptyPlaceholderText.textContent = 'Tutti i file analizzati nelle cartelle selezionate sono univoci secondo i criteri impostati.';
+    }
     return;
   }
 
@@ -428,9 +502,11 @@ function renderResults() {
 
       // Clic sul path o sul bottone reveal
       row.querySelector('.file-path-text').addEventListener('click', () => {
+        logToMain('info', `Reveal in file manager: ${file.path}`);
         window.dupFinderAPI.showItemInFolder(file.path);
       });
       row.querySelector('[data-action="reveal"]').addEventListener('click', () => {
+        logToMain('info', `Reveal in file manager: ${file.path}`);
         window.dupFinderAPI.showItemInFolder(file.path);
       });
 
@@ -447,7 +523,7 @@ function renderResults() {
 
     card.appendChild(header);
     card.appendChild(list);
-    dom.resultsScrollContainer.appendChild(card);
+    (dom.resultsList || dom.resultsScrollContainer).appendChild(card);
   });
 }
 
@@ -606,6 +682,7 @@ async function onShowGuideClick() {
 }
 
 function closeGuide() {
+  logToMain('info', 'Utente ha chiuso la Guida');
   dom.guideOverlay.hidden = true;
 }
 

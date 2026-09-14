@@ -37,6 +37,7 @@
       "README.md",
       "src/**/*",
       "build/icon.png",
+      "build/icon.svg",
       "node_modules/**/*",
       "package.json"
     ],

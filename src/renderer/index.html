@@ -4,26 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DupFinder - Trova File Duplicati</title>
-  <!-- Link al foglio di stile dedicato -->
+  <!-- Stili locali: nessun font o CSS da CDN, così l'app resta usabile offline. -->
   <link rel="stylesheet" href="styles.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <!-- Header Superiore dell'Applicazione -->
   <header class="app-header">
     <div class="brand">
-      <!-- Icona Incorporata SVG -->
-      <svg class="brand-icon" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="112" fill="#0f172a"/>
-        <path d="M 110 120 L 220 120 L 270 170 L 270 340 A 16 16 0 0 1 254 356 L 110 356 A 16 16 0 0 1 94 340 L 94 136 A 16 16 0 0 1 110 120 Z" fill="#0284c7" />
-        <path d="M 170 160 L 280 160 L 330 210 L 330 380 A 16 16 0 0 1 314 396 L 170 396 A 16 16 0 0 1 154 380 L 154 176 A 16 16 0 0 1 170 160 Z" fill="#4f46e5" />
-        <circle cx="210" cy="340" r="24" fill="#10b981" />
-        <path d="M 370 370 L 440 440 A 18 18 0 0 1 415 465 L 345 395 Z" fill="#d97706" />
-        <circle cx="310" cy="310" r="80" stroke="#f8fafc" stroke-width="16" fill="rgba(56, 189, 248, 0.25)" />
-      </svg>
+      <!-- Icona Fase 1: stesso SVG in build/icon.svg, incorporato (nessun download). -->
+      <img class="brand-icon" src="../../build/icon.svg" width="36" height="36" alt="DupFinder">
       <div class="brand-text">
         <h1>DupFinder <span class="badge">v1.0.0</span></h1>
         <p>Ricerca e pulizia sicura di file duplicati</p>
@@ -225,16 +215,18 @@
 
       <!-- Scroll Area dei Gruppi Duplicati -->
       <div class="results-scroll-area" id="resultsScrollContainer">
-        <!-- Placeholder Iniziale -->
+        <!-- Placeholder: non viene mai distrutto, così resta visibile anche dopo una scansione a zero risultati. -->
         <div class="empty-placeholder" id="emptyPlaceholder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
-          <h2>Nessuna scansione eseguita</h2>
-          <p>Aggiungi una o più cartelle dal pannello laterale a sinistra, seleziona i parametri di confronto e clicca su "Avvia Scansione". Il pulsante <strong>Guida</strong> in alto a destra apre il manuale README incluso nel programma.</p>
+          <h2 id="emptyPlaceholderTitle">Nessuna scansione eseguita</h2>
+          <p id="emptyPlaceholderText">Aggiungi una o più cartelle dal pannello laterale a sinistra, seleziona i parametri di confronto e clicca su "Avvia Scansione". Il pulsante <strong>Guida</strong> in alto a destra apre il manuale README incluso nel programma.</p>
         </div>
+        <!-- Qui vengono montati i gruppi duplicati; si svuota ad ogni nuova scansione. -->
+        <div id="resultsList"></div>
       </div>
 
     </main>

@@ -154,7 +154,7 @@ async function walkDirectory(dirPath, criteria, token, onProgress, collectedFile
         collectedFiles.push(fileRecord);
 
         // Notifica il progresso ogni 50 file analizzati per mantenere l'interfaccia reattiva
-        if (collectedFiles.length % 50 === 0 && typeof onProgress === 'function') {
+        if (collectedFiles.length % 10 === 0 && typeof onProgress === 'function') {
           onProgress({
             phase: 'collecting',
             currentFile: fullPath,
