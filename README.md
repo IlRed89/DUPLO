@@ -26,7 +26,7 @@ Indice:
 
 DupFinder **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DupFinder.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DupFinder-1.0.0-win.zip` (64-bit) o `DupFinder-1.0.0-win-ia32.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
+1. Scarica `DupFinder-1.0.0-win.zip` (64-bit) o `DupFinder-1.0.0-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DupFinder.exe**.
 4. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
@@ -300,7 +300,7 @@ npm start
 | `npm start` | App in sviluppo |
 | `npm test` | Test hasher, scanner, categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DupFinder-*-win.zip`, `*-win-ia32.zip`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DupFinder-1.0.0-win.zip`, `DupFinder-1.0.0-ia32-win.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |

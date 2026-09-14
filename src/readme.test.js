@@ -20,7 +20,7 @@ test('README.md del progetto è trovato e contiene le sezioni del manuale', () =
   assert.match(loaded.content, /## Domande frequenti/);
   assert.match(loaded.content, /Ricerca Avanzata/);
   assert.match(loaded.content, /Categoria file/);
-  assert.match(loaded.content, /win\.zip|ia32/);
+  assert.match(loaded.content, /ia32-win\.zip/);
   assert.ok(loaded.content.length > 4000, 'il manuale deve essere dettagliato');
 });
 
