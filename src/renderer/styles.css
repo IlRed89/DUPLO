@@ -140,9 +140,28 @@ body {
   border-right: none;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.25rem;
+  gap: 1rem;
+}
+
+.sidebar-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
+  padding-right: 0.15rem;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-pill);
 }
 
 .panel-splitter {
@@ -183,6 +202,15 @@ body.is-resizing * {
   border-radius: var(--radius-pill);
 }
 
+.sidebar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
 /* Sezioni della Sidebar */
 .panel-section {
   display: flex;
@@ -206,8 +234,8 @@ body.is-resizing * {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  max-height: 160px;
-  min-height: 72px;
+  max-height: 120px;
+  min-height: 64px;
   overflow-y: auto;
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-md);

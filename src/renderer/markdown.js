@@ -20,9 +20,24 @@
   function inline(text) {
     let out = escapeHtml(text);
     out = out.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    out = out.replace(/\[([^\]]+)\]\((#[^)]+)\)/g, '<a href="$2">$1</a>');
     out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
     out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     return out;
+  }
+
+  /**
+   * Ancora stile GitHub per i titoli, così i link dell'indice (#avvio) funzionano in-app.
+   * @param {string} text
+   * @returns {string}
+   */
+  function slugify(text) {
+    return String(text)
+      .trim()
+      .toLowerCase()
+      .replace(/[’'`]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   function markdownToHtml(md) {
@@ -88,7 +103,7 @@
       if (heading) {
         closeList();
         const level = heading[1].length;
-        html.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+        html.push(`<h${level} id="${slugify(heading[2])}">${inline(heading[2])}</h${level}>`);
         i += 1;
         continue;
       }

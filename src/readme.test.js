@@ -61,7 +61,7 @@ test('markdownToHtml rende titoli, liste, tabelle, codice e grassetto', () => {
     '[sito](https://example.com)'
   ].join('\n'));
 
-  assert.match(html, /<h1>Titolo<\/h1>/);
+  assert.match(html, /<h1 id="titolo">Titolo<\/h1>/);
   assert.match(html, /<strong>grassetto<\/strong>/);
   assert.match(html, /<code>codice<\/code>/);
   assert.match(html, /<ul>/);
@@ -72,4 +72,7 @@ test('markdownToHtml rende titoli, liste, tabelle, codice e grassetto', () => {
   assert.doesNotMatch(html, />---</);
   assert.match(html, /<pre><code>npm start<\/code><\/pre>/);
   assert.match(html, /href="https:\/\/example.com"/);
+  const withToc = markdownToHtml('## Avvio\n\n1. [Avvio](#avvio)\n');
+  assert.match(withToc, /<h2 id="avvio">Avvio<\/h2>/);
+  assert.match(withToc, /<a href="#avvio">Avvio<\/a>/);
 });

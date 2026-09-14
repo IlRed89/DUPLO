@@ -78,9 +78,9 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 1100,
-    height: 780,
+    height: 900,
     minWidth: 850,
-    minHeight: 600,
+    minHeight: 640,
     title: 'DupFinder - Trova File Duplicati',
     // Icona dell'applicazione (cross-platform con fallback su icon.png o icon.svg)
     icon: path.join(__dirname, 'build', 'icon.png'),
