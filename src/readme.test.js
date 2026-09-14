@@ -18,6 +18,8 @@ test('README.md del progetto è trovato e contiene le sezioni del manuale', () =
   assert.match(loaded.content, /## Flusso consigliato/);
   assert.match(loaded.content, /Pulizia Rapida/);
   assert.match(loaded.content, /## Domande frequenti/);
+  assert.match(loaded.content, /win-unpacked/);
+  assert.match(loaded.content, /Categoria file/);
   assert.ok(loaded.content.length > 4000, 'il manuale deve essere dettagliato');
 });
 

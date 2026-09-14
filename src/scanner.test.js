@@ -11,6 +11,7 @@ const path = require('path');
 const os = require('os');
 const { computePartialHash, computeFullHash } = require('./hasher');
 const { findDuplicates, ScanCancellationToken } = require('./scanner');
+const { getCategoryExtensions } = require('./fileCategories');
 
 test('Hasher: calcolo corretto di partial hash e full hash su file identici', async () => {
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-test-'));
@@ -69,6 +70,35 @@ test('Scanner: identificazione corretta di duplicati con filtri multipli e crite
   assert.equal(groups.length, 1, 'Deve essere individuato esattamente 1 gruppo di duplicati');
   assert.equal(groups[0].files.length, 2, 'Il gruppo duplicato deve contenere esattamente 2 file');
   assert.equal(groups[0].wastedBytes, groups[0].size, 'Lo spazio sprecato calcolato deve corrispondere alla dimensione del duplicato');
+
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('Scanner: la categoria Documenti include solo le estensioni hardcoded', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-cat-'));
+  const same = 'stesso contenuto per filtro categoria. '.repeat(40);
+  await fsp.writeFile(path.join(tmpDir, 'a.txt'), same);
+  await fsp.writeFile(path.join(tmpDir, 'b.txt'), same);
+  await fsp.writeFile(path.join(tmpDir, 'c.jpg'), same);
+
+  const criteria = {
+    matchName: false,
+    matchSize: true,
+    matchDate: false,
+    matchHash: true,
+    matchExtension: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: getCategoryExtensions('documents'),
+    excludeExtensions: [],
+    includeHidden: false
+  };
+
+  const groups = await findDuplicates([tmpDir], criteria, new ScanCancellationToken(), () => {});
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].files.length, 2);
+  assert.ok(groups[0].files.every((f) => f.path.endsWith('.txt')));
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });

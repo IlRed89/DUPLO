@@ -20,6 +20,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <select id="selectLanguage" class="input-field lang-select" title="Lingua del menu di sistema">
+        <option value="it" selected>Italiano</option>
+        <option value="en">English</option>
+      </select>
       <button class="btn btn-secondary btn-sm" id="btnShowGuide" title="Apri il manuale README incluso nel programma">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
         Guida
@@ -43,8 +47,8 @@
           <span>Cartelle da analizzare</span>
           <span id="folderCountBadge" style="font-weight: normal; color: var(--text-dim);">(0)</span>
         </div>
-        <div class="folder-list" id="folderListContainer">
-          <div class="empty-folders-hint">Nessuna cartella selezionata</div>
+        <div class="folder-list folder-dropzone" id="folderListContainer">
+          <div class="empty-folders-hint">Nessuna cartella selezionata<br><span class="drop-hint">Trascina qui una o più cartelle da Esplora file</span></div>
         </div>
         <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
           <button class="btn btn-secondary btn-sm" id="btnAddFolder" style="flex: 1;">
@@ -135,8 +139,15 @@
           </div>
         </div>
         <div class="input-group" style="margin-top: 0.4rem;">
-          <label for="inputExtFilter">Filtra per Estensioni (es. .jpg, .png, .pdf)</label>
-          <input type="text" id="inputExtFilter" class="input-field" placeholder="Tutte (oppure es: .mp4, .zip)">
+          <label for="selectFileCategory">Categoria file</label>
+          <select id="selectFileCategory" class="input-field">
+            <option value="all" selected>Tutti i file</option>
+            <option value="images">Immagini</option>
+            <option value="audio">Audio</option>
+            <option value="documents">Documenti</option>
+            <option value="video">Video</option>
+          </select>
+          <p class="category-hint" id="categoryHint">Nessun filtro: vengono analizzati tutti i tipi di file.</p>
         </div>
         <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); cursor: pointer; margin-top: 0.35rem;">
           <input type="checkbox" id="chkIncludeHidden"> Includi cartelle e file nascosti
@@ -156,6 +167,9 @@
       </div>
 
     </aside>
+
+    <!-- Splitter: mousedown qui, mousemove/mouseup su document (vedi renderer.js). -->
+    <div class="panel-splitter" id="panelSplitter" role="separator" aria-orientation="vertical" aria-label="Ridimensiona i pannelli"></div>
 
     <!-- AREA PRINCIPALE: Risultati e Monitoraggio Live -->
     <main class="main-content">
@@ -223,7 +237,7 @@
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
           <h2 id="emptyPlaceholderTitle">Nessuna scansione eseguita</h2>
-          <p id="emptyPlaceholderText">Aggiungi una o più cartelle dal pannello laterale a sinistra, seleziona i parametri di confronto e clicca su "Avvia Scansione". Il pulsante <strong>Guida</strong> in alto a destra apre il manuale README incluso nel programma.</p>
+          <p id="emptyPlaceholderText">Aggiungi cartelle dal pannello a sinistra (pulsante o trascinandole da Esplora file), scegli la categoria e i parametri, poi avvia la scansione.</p>
         </div>
         <!-- Qui vengono montati i gruppi duplicati; si svuota ad ogni nuova scansione. -->
         <div id="resultsList"></div>
@@ -266,6 +280,8 @@
   </div>
 
   <!-- Script del Renderer -->
+  <script src="../fileCategories.js"></script>
+  <script src="splitterMath.js"></script>
   <script src="markdown.js"></script>
   <script src="renderer.js"></script>
 </body>

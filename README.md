@@ -1,10 +1,10 @@
 # DupFinder — Manuale d'uso
 
-**Versione 1.0.0** · Windows, macOS e Linux · applicazione desktop portatile (Electron)
+**Versione 1.0.0** · Windows, macOS e Linux · applicazione desktop Electron (cartella unpacked)
 
 DupFinder trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano i criteri che hai selezionato.
 
-Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programma**: in alto a destra apri **Guida**.
+Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programma**: in alto a destra apri **Guida**, oppure dal menu nativo **Aiuto → Guida (README)** (F1).
 
 Indice:
 
@@ -24,19 +24,20 @@ Indice:
 
 ## Avvio
 
-Non serve installare nulla.
+DupFinder **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DupFinder.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DupFinder-windows-portable.exe` dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
-2. Fai doppio clic sul file. Si apre la finestra scura di DupFinder.
-3. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
+1. Scarica `DupFinder-windows-x64.zip` dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
+2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
+3. Entra in `win-unpacked` (o nella cartella estratta) e fai doppio clic su **DupFinder.exe**.
+4. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
 
-Su macOS e Linux usa il pacchetto della stessa release (`.dmg` o `.AppImage`). Su Linux: `chmod +x DupFinder-linux-x86_64.AppImage` e doppio clic (o `./DupFinder-linux-x86_64.AppImage`).
+Su Linux scarica `DupFinder-linux-x64.zip`, estrai e avvia `./DupFinder` da `linux-unpacked` (`chmod +x DupFinder` se serve). Su macOS la cartella unpacked va compilata su un Mac (`npm run dist:mac`): dentro trovi `DupFinder.app`.
 
 ---
 
 ## Flusso consigliato (prima volta)
 
-1. Clicca **Aggiungi Cartella** e scegli la cartella da analizzare (Foto, Download, Documenti…). Puoi aggiungerne più di una: DupFinder confronta anche i file che stanno in cartelle diverse.
+1. Aggiungi le cartelle da analizzare (Foto, Download, Documenti…): **Aggiungi Cartella** oppure **trascinale** da Esplora file / Finder sull'elenco a sinistra. Puoi aggiungerne più di una: DupFinder confronta anche i file che stanno in cartelle diverse. I singoli file trascinati vengono ignorati.
 2. Lascia attivi **Stessa Dimensione** e **Hash Contenuto (2-Step)**. Così trovi copie identiche anche se i nomi sono diversi (`foto.jpg` e `copia di foto.jpg`).
 3. Clicca **Avvia Scansione** e attendi la barra di avanzamento.
 4. Leggi i gruppi: la riga verde **Originale** è quella che verrà conservata; le righe rosse **Duplicato** sono le copie in più.
@@ -50,14 +51,18 @@ Finché non confermi, **nessun file viene cancellato**.
 
 ## Interfaccia
 
-### Intestazione
+### Intestazione e menu nativo
 
-- **Guida** — apre questo manuale dentro l'applicazione. Da lì puoi anche aprire il file `README.md` con il visualizzatore di testo del sistema.
-- **File di Log** — mostra il percorso del diario tecnico (utile se qualcosa non funziona).
+- **Italiano / English** — cambia la lingua della barra dei menu di sistema (File, Modifica, Visualizza, Finestra, Aiuto). L'interfaccia della finestra resta in italiano.
+- **Guida** — apre questo manuale dentro l'applicazione. Stessa voce nel menu **Aiuto** (F1). Da lì puoi aprire `README.md` con il visualizzatore di testo del sistema.
+- **File di Log** — mostra il percorso del diario tecnico (utile se qualcosa non funziona). Anche **Aiuto → Apri cartella dei log**.
+
+Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premuto il mouse sul bordo e muovi. I listener `mousemove` / `mouseup` sono sul documento, così il tracciamento non si perde se il cursore esce dalla striscia da 6 px.
 
 ### Cartelle da analizzare
 
 - **Aggiungi Cartella** apre la finestra nativa del sistema (Esplora file / Finder).
+- **Trascina** una o più cartelle sull'elenco tratteggiato. DupFinder verifica ogni path con `fs.statSync`: accetta solo directory, logga e scarta file o percorsi illeggibili.
 - Ogni cartella compare nell'elenco: puoi toglierne una sola o **Rimuovi Tutte**.
 - DupFinder scende in tutte le sottocartelle.
 - I collegamenti simbolici non vengono seguiti, per evitare di contare due volte lo stesso file o di entrare in cicli.
@@ -83,7 +88,12 @@ I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa *
 
 - **Dimensione minima (KB)** — ignora i file più piccoli. Utile per non perdere tempo su miniature e file di sistema da pochi byte. `0` = nessun limite.
 - **Algoritmo Hash** — `SHA-256` (predefinito, più sicuro) oppure `MD5` (un po' più veloce). Per trovare duplicati entrambi vanno bene.
-- **Filtra per estensioni** — elenco separato da virgola, con o senza punto: `.jpg, png, mp4`. Vuoto = tutti i tipi.
+- **Categoria file** — tendina con elenco fisso di estensioni (non si digita a mano):
+  - **Tutti i file** — nessun filtro.
+  - **Immagini** — `.jpg, .jpeg, .png, .gif, .bmp, .webp`
+  - **Audio** — `.mp3, .wav, .flac, .aac`
+  - **Documenti** — `.pdf, .doc, .docx, .xls, .xlsx, .txt`
+  - **Video** — `.mp4, .mkv, .avi, .mov`
 - **Includi cartelle e file nascosti** — spunta solo se vuoi analizzare anche elementi che iniziano con `.` o che Windows marca come nascosti.
 
 ---
@@ -176,7 +186,7 @@ Se l’app non parte, il log potrebbe non esistere ancora: in quel caso indica s
 ## Consigli pratici
 
 - Parti da una cartella tua (Foto, Download). Evita `C:\Windows` o le cartelle di sistema: non è il caso d'uso e i permessi bloccano gran parte dei file.
-- Per le foto: Dimensione + Hash, estensioni `.jpg, .jpeg, .png, .heic, .raw`.
+- Per le foto: Dimensione + Hash e categoria **Immagini**. (HEIC/RAW non sono nella lista fissa: usa **Tutti i file** se ti servono.)
 - Per i download: Dimensione + Hash, dimensione minima `100` KB, così ignori i file piccolissimi.
 - Se due cartelle si sovrappongono (una cartella e la sua sottocartella), i file non vengono contati due volte.
 - Fai una copia di sicurezza prima di una pulizia su archivi importanti.
@@ -198,7 +208,7 @@ Non sono duplicati di contenuto. Con Hash attivo restano distinti. Se spunti sol
 No. DupFinder non sposta nel Cestino. Usa l'anteprima e l'esportazione prima della pulizia rapida.
 
 **L'antivirus blocca l'eseguibile.**  
-È un falso positivo frequente sugli exe portatili non firmati. Confronta l'hash del file scaricato con `SHA256SUMS.txt` nella release.
+È un falso positivo frequente sugli exe non firmati. Confronta l'hash dello zip scaricato con `SHA256SUMS.txt` nella release. Non spostare `DupFinder.exe` fuori dalla cartella unpacked.
 
 ---
 
@@ -240,11 +250,15 @@ DupFinder/
     ├── logger.js                # electron-log (console + file)
     ├── hasher.js                # chunk 1 MB, poi stream SHA-256/MD5
     ├── scanner.js               # walk cross-platform, filtri, raggruppamento
+    ├── dropFilter.js            # drop: statSync, solo directory
+    ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
+    ├── nativeMenu.js            # menu nativo it/en (Menu.buildFromTemplate)
     ├── readme.js                # risolve README.md in dev e nel pacchetto
     └── renderer/
         ├── index.html
         ├── styles.css
-        ├── renderer.js          # eventi UI e progresso
+        ├── renderer.js          # eventi UI, splitter, drag & drop
+        ├── splitterMath.js      # clamp larghezza sidebar
         └── markdown.js          # rendering del manuale in-app
 ```
 
@@ -274,16 +288,18 @@ npm start
 | Comando | Output |
 | --- | --- |
 | `npm start` | App in sviluppo |
-| `npm test` | Test hasher, scanner, README |
+| `npm test` | Test hasher, scanner, categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
-| `npm run dist:win` | `dist/DupFinder-windows-portable.exe` |
-| `npm run dist:linux` | `dist/DupFinder-linux-x86_64.AppImage` |
-| `npm run dist:mac` | `dist/DupFinder-mac-<arch>.dmg` (**solo su macOS**) |
-| `npm run dist` | Windows portable + Linux AppImage (da Linux/CI) |
+| `npm run dist:win` | `dist/win-unpacked/` (eseguibile + runtime, **non** un exe unico) |
+| `npm run dist:linux` | `dist/linux-unpacked/` |
+| `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
+| `npm run dist` | Cartelle unpacked Windows + Linux (da Linux/CI) |
+
+Per distribuire: zippa `dist/win-unpacked` e `dist/linux-unpacked`. L'utente deve lanciare `DupFinder.exe` / `DupFinder` **dentro** quella cartella.
 
 `README.md` viene copiato nelle risorse del pacchetto (`extraResources`) e letto dalla voce **Guida**.
 
-Il DMG va compilato su un Mac. La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`).
+La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`) e non richiede Wine perché il target è `dir`, non un installer.
 
 ---
 

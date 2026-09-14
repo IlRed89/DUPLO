@@ -19,6 +19,13 @@ contextBridge.exposeInMainWorld('dupFinderAPI', {
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
 
   /**
+   * Verifica quali path droppati sono cartelle (stat nel Main Process).
+   * @param {string[]} paths
+   * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>}
+   */
+  filterDirectories: (paths) => ipcRenderer.invoke('fs:filter-directories', paths),
+
+  /**
    * Avvia la scansione dei duplicati con i percorsi e i criteri specificati.
    * @param {Object} payload - { directories: string[], criteria: Object }
    * @returns {Promise<Array<Object>>} Risultati dei gruppi duplicati

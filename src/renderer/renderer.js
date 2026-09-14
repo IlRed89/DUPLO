@@ -44,6 +44,12 @@ const dom = {
   btnClearFolders: document.getElementById('btnClearFolders'),
   folderListContainer: document.getElementById('folderListContainer'),
   folderCountBadge: document.getElementById('folderCountBadge'),
+  appBody: document.querySelector('.app-body'),
+  sidebarPanel: document.querySelector('.sidebar-panel'),
+  panelSplitter: document.getElementById('panelSplitter'),
+  selectLanguage: document.getElementById('selectLanguage'),
+  selectFileCategory: document.getElementById('selectFileCategory'),
+  categoryHint: document.getElementById('categoryHint'),
 
   // Criteri
   chkMatchSize: document.getElementById('chkMatchSize'),
@@ -53,7 +59,6 @@ const dom = {
   chkMatchDate: document.getElementById('chkMatchDate'),
   inputMinSize: document.getElementById('inputMinSize'),
   selectHashAlgo: document.getElementById('selectHashAlgo'),
-  inputExtFilter: document.getElementById('inputExtFilter'),
   chkIncludeHidden: document.getElementById('chkIncludeHidden'),
 
   // Azioni di Scansione
@@ -110,6 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Ogni variazione dei filtri viene scritta nel log persistente (debug infallibile).
   bindCriteriaLogging();
+  initSplitter();
+  initFolderDropZone();
+  bindLanguageAndCategory();
 
   // Listener per avvio e stop scansione
   dom.btnStartScan.addEventListener('click', onStartScanClick);
@@ -171,9 +179,7 @@ async function onAddFolderClick() {
       return;
     }
 
-    state.selectedFolders.push(selected);
-    logToMain('info', `Aggiunta cartella "${selected}" all'elenco. Totale: ${state.selectedFolders.length}`);
-    renderFolderList();
+    addFolderPath(selected, 'dialogo nativo');
   } catch (err) {
     logToMain('error', `Errore durante la selezione della cartella: ${err.message}`);
   }
@@ -202,6 +208,23 @@ function removeFolder(index) {
 }
 
 /**
+ * Inserisce un percorso cartella nell'elenco, evitando i duplicati.
+ *
+ * @param {string} folderPath
+ * @param {string} source - Origine per il log (dialogo, drag & drop, …)
+ */
+function addFolderPath(folderPath, source) {
+  if (!folderPath) return;
+  if (state.selectedFolders.includes(folderPath)) {
+    logToMain('warn', `Cartella già in elenco (fonte: ${source}): "${folderPath}"`);
+    return;
+  }
+  state.selectedFolders.push(folderPath);
+  logToMain('info', `Cartella "${folderPath}" aggiunta tramite ${source}. Totale: ${state.selectedFolders.length}`);
+  renderFolderList();
+}
+
+/**
  * Aggiorna la vista dell'elenco cartelle nella sidebar.
  */
 function renderFolderList() {
@@ -209,7 +232,7 @@ function renderFolderList() {
   dom.folderListContainer.innerHTML = '';
 
   if (state.selectedFolders.length === 0) {
-    dom.folderListContainer.innerHTML = '<div class="empty-folders-hint">Nessuna cartella selezionata</div>';
+    dom.folderListContainer.innerHTML = '<div class="empty-folders-hint">Nessuna cartella selezionata<br><span class="drop-hint">Trascina qui una o più cartelle da Esplora file</span></div>';
     return;
   }
 
@@ -260,9 +283,180 @@ function bindCriteriaLogging() {
   dom.inputMinSize.addEventListener('change', () => {
     logToMain('info', `Dimensione minima impostata a ${dom.inputMinSize.value} KB`);
   });
-  dom.inputExtFilter.addEventListener('change', () => {
-    logToMain('info', `Filtro estensioni impostato a "${dom.inputExtFilter.value}"`);
+}
+
+/**
+ * Tendina lingua (menu nativo) e tendina categorie file.
+ */
+function bindLanguageAndCategory() {
+  if (dom.selectLanguage) {
+    dom.selectLanguage.addEventListener('change', () => {
+      const lang = dom.selectLanguage.value;
+      logToMain('info', `Lingua UI richiesta: ${lang}`);
+      try {
+        window.dupFinderAPI.setLanguage(lang);
+      } catch (err) {
+        logToMain('error', `Cambio lingua fallito: ${err.message}`);
+      }
+    });
+  }
+  if (dom.selectFileCategory) {
+    updateCategoryHint();
+    dom.selectFileCategory.addEventListener('change', () => {
+      const id = dom.selectFileCategory.value;
+      const exts = getSelectedCategoryExtensions();
+      logToMain('info', `Categoria file "${id}" → ${exts.length ? exts.join(',') : '(tutti i tipi)'}`);
+      updateCategoryHint();
+    });
+  }
+}
+
+function getSelectedCategoryExtensions() {
+  const api = window.DupFinderFileCategories;
+  const id = (dom.selectFileCategory && dom.selectFileCategory.value) || 'all';
+  if (api && typeof api.getCategoryExtensions === 'function') {
+    return api.getCategoryExtensions(id);
+  }
+  return [];
+}
+
+function updateCategoryHint() {
+  if (!dom.categoryHint) return;
+  const api = window.DupFinderFileCategories;
+  const id = (dom.selectFileCategory && dom.selectFileCategory.value) || 'all';
+  if (api && typeof api.formatCategoryHint === 'function') {
+    dom.categoryHint.textContent = api.formatCategoryHint(id);
+  }
+}
+
+/**
+ * Splitter verticale: il drag inizia sul divisore, ma mousemove/mouseup
+ * sono sul document così il tracciamento non si perde se il cursore esce
+ * dal hit-area da 6px (movimento rapido).
+ *
+ * Formula: newWidth = clamp(startWidth + (clientX - startX), 280, bodyWidth - 320)
+ * applicata come flex-basis CSS sulla sidebar.
+ */
+function initSplitter() {
+  const splitter = dom.panelSplitter;
+  const sidebar = dom.sidebarPanel;
+  const bodyEl = dom.appBody;
+  if (!splitter || !sidebar || !bodyEl) {
+    logToMain('warn', 'Splitter non inizializzato: elementi DOM mancanti');
+    return;
+  }
+
+  const math = window.DupFinderSplitterMath;
+  let dragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  splitter.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    dragging = true;
+    startX = event.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    splitter.classList.add('is-dragging');
+    document.body.classList.add('is-resizing');
+    logToMain('debug', `Splitter mousedown: startWidth=${startWidth}px startX=${startX}`);
   });
+
+  document.addEventListener('mousemove', (event) => {
+    if (!dragging) return;
+    try {
+      const deltaX = event.clientX - startX;
+      const containerWidth = bodyEl.getBoundingClientRect().width;
+      const next = math
+        ? math.clampSidebarWidth(startWidth, deltaX, containerWidth)
+        : startWidth + deltaX;
+      sidebar.style.flexBasis = `${next}px`;
+      sidebar.style.width = `${next}px`;
+    } catch (err) {
+      logToMain('error', `Splitter mousemove: ${err.message}`);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    splitter.classList.remove('is-dragging');
+    document.body.classList.remove('is-resizing');
+    const finalW = Math.round(sidebar.getBoundingClientRect().width);
+    logToMain('info', `Splitter mouseup: sidebar ${finalW}px`);
+  });
+}
+
+/**
+ * Drag & drop cartelle sull'elenco. dragover deve chiamare preventDefault
+ * altrimenti il browser/Electron rifiuta il drop.
+ */
+function initFolderDropZone() {
+  const zone = dom.folderListContainer;
+  if (!zone) return;
+
+  const onDragOver = (event) => {
+    event.preventDefault();
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    zone.classList.add('is-drop-target');
+  };
+  // Senza preventDefault su dragover il browser rifiuta il drop sulla zona.
+  zone.addEventListener('dragenter', onDragOver);
+  zone.addEventListener('dragover', onDragOver);
+  zone.addEventListener('dragleave', (event) => {
+    if (!zone.contains(event.relatedTarget)) {
+      zone.classList.remove('is-drop-target');
+    }
+  });
+  zone.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    zone.classList.remove('is-drop-target');
+    await handleFolderDrop(event);
+  });
+
+  document.addEventListener('dragover', (event) => {
+    event.preventDefault();
+  });
+  document.addEventListener('drop', (event) => {
+    if (!zone.contains(event.target)) {
+      event.preventDefault();
+    }
+  });
+}
+
+/**
+ * Legge i path da dataTransfer.files (Electron imposta File.path) e chiede
+ * al Main Process di tenere solo le directory reali (fs.statSync).
+ *
+ * @param {DragEvent} event
+ */
+async function handleFolderDrop(event) {
+  try {
+    const files = event.dataTransfer && event.dataTransfer.files
+      ? Array.from(event.dataTransfer.files)
+      : [];
+    const rawPaths = files.map((f) => f.path).filter(Boolean);
+    logToMain('info', `Drop ricevuto: ${rawPaths.length} elementi`);
+    if (rawPaths.length === 0) {
+      logToMain('warn', 'Drop senza path (non è una cartella di filesystem)');
+      return;
+    }
+    const result = await window.dupFinderAPI.filterDirectories(rawPaths);
+    (result.skipped || []).forEach((item) => {
+      logToMain('warn', `Drop ignorato "${item.path}": ${item.reason}`);
+    });
+    (result.directories || []).forEach((dir) => {
+      addFolderPath(dir, 'drag & drop');
+    });
+    if (!(result.directories || []).length) {
+      alert('Nessuna cartella valida nel trascinamento. Trascina cartelle, non singoli file.');
+    }
+  } catch (err) {
+    logToMain('error', `Errore drag & drop: ${err.message}`);
+  }
 }
 
 /**
@@ -272,10 +466,7 @@ function bindCriteriaLogging() {
  * @returns {object|null} criteri, oppure null se l'utente non ha scelto nessun parametro
  */
 function collectScanCriteria() {
-  const extFilterRaw = dom.inputExtFilter.value.trim();
-  const includeExts = extFilterRaw
-    ? extFilterRaw.split(',').map((e) => e.trim()).filter(Boolean)
-    : [];
+  const includeExts = getSelectedCategoryExtensions();
   const minSizeKB = parseInt(dom.inputMinSize.value, 10) || 0;
 
   const criteria = {

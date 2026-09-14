@@ -14,6 +14,7 @@ const { logger, logSystemInfo, getLogFilePath } = require('./src/logger');
 const { ScanCancellationToken, findDuplicates, normalizeCrossPlatformPath } = require('./src/scanner');
 const { loadReadme, resolveReadmePath } = require('./src/readme');
 const { createNativeMenu } = require('./src/nativeMenu');
+const { filterDirectoryPaths } = require('./src/dropFilter');
 
 function packagedReadmeOptions() {
   return {
@@ -98,6 +99,12 @@ function createWindow() {
   logger.info(`[Main] Caricamento interfaccia utente da: "${indexPath}"`);
   mainWindow.loadFile(indexPath);
 
+  // Un drop di file sulla finestra non deve navigare via dall'app (sostituirebbe la UI).
+  mainWindow.webContents.on('will-navigate', (event) => {
+    event.preventDefault();
+    logger.warn('[Main] will-navigate bloccato (probabile drop di file sulla finestra)');
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     logger.info('[Main] Finestra principale mostrata all\'utente');
@@ -167,6 +174,23 @@ ipcMain.handle('dialog:select-directory', async () => {
   } catch (err) {
     logger.error(`[IPC] Errore durante l'apertura del dialogo cartella: ${err.message}`);
     return null;
+  }
+});
+
+/**
+ * Filtra un elenco di path provenienti da un drop HTML5: tiene solo le directory.
+ * Usa statSync in try/catch per ogni voce (file, path inesistenti, EACCES).
+ *
+ * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>}
+ */
+ipcMain.handle('fs:filter-directories', async (_event, rawPaths) => {
+  const list = Array.isArray(rawPaths) ? rawPaths : [];
+  logger.info(`[IPC] Filtro drop: ${list.length} path da verificare con fs.statSync`);
+  try {
+    return filterDirectoryPaths(list);
+  } catch (err) {
+    logger.error(`[IPC] Filtro drop fallito: ${err.message}`);
+    return { directories: [], skipped: [{ path: '', reason: err.message }] };
   }
 });
 
