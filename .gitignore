@@ -1,32 +1,61 @@
-# Dipendenze Node.js
+# Dipendenze e cache dei package manager
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 lerna-debug.log*
-.pnpm-debug.log*
+.pnpm-store/
+.npm/
+.yarn/
+.pnp.*
 
-# Directory di output packaging electron-builder
+# Output di electron-builder e artefatti di release locali
 dist/
 out/
+release/
 build-artifacts/
+*.AppImage
+*.dmg
+*.blockmap
+builder-effective-config.yaml
+electron-builder.env
 
-# File di ambiente e credenziali locali
+# Non versionare gli eseguibili compilati (restano in dist/, già ignorata)
+# I sorgenti in build/ (svg/png/ico/icns) VANNO committati.
+
+# Variabili d'ambiente e segreti
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
 
-# File generati dall'editor e dal sistema operativo
+# Log di runtime e di test (electron-log in sviluppo può scrivere in ./logs)
+logs/
+*.log
+
+# Coverage e cache di test/lint
+coverage/
+.nyc_output/
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# File temporanei dello script icone
+build/_icon-raster.html
+
+# Editor e sistema operativo
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
+*.orig
 .DS_Store
 Thumbs.db
+ehthumbs.db
 Desktop.ini
-
-# File di log generati localmente durante i test
-logs/
-*.log
+$RECYCLE.BIN/

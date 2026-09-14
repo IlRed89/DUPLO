@@ -1,10 +1,24 @@
 # DupFinder — Manuale d'uso
 
-**Versione 1.0.0** · Windows, macOS e Linux · applicazione desktop portatile
+**Versione 1.0.0** · Windows, macOS e Linux · applicazione desktop portatile (Electron)
 
 DupFinder trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano i criteri che hai selezionato.
 
 Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programma**: in alto a destra apri **Guida**.
+
+Indice:
+
+1. [Avvio](#avvio)
+2. [Flusso consigliato](#flusso-consigliato-prima-volta)
+3. [Interfaccia](#interfaccia)
+4. [Come funziona la scansione](#come-funziona-la-scansione)
+5. [Risultati](#risultati-originale-e-duplicati)
+6. [Esportazione](#esportazione)
+7. [File di log (troubleshooting)](#file-di-log-troubleshooting)
+8. [Consigli, FAQ, limitazioni](#consigli-pratici)
+9. [Architettura](#architettura)
+10. [Sviluppo e compilazione](#sviluppo-e-compilazione)
+11. [Licenza](#licenza)
 
 ---
 
@@ -16,7 +30,7 @@ Non serve installare nulla.
 2. Fai doppio clic sul file. Si apre la finestra scura di DupFinder.
 3. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
 
-Su macOS e Linux usa il pacchetto della stessa release (`.dmg` o `.AppImage`).
+Su macOS e Linux usa il pacchetto della stessa release (`.dmg` o `.AppImage`). Su Linux: `chmod +x DupFinder-linux-x86_64.AppImage` e doppio clic (o `./DupFinder-linux-x86_64.AppImage`).
 
 ---
 
@@ -51,7 +65,7 @@ Finché non confermi, **nessun file viene cancellato**.
 
 ### Parametri di confronto
 
-I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa **tutti** quelli spuntati.
+I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa **tutti** quelli spuntati. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata.
 
 | Parametro | Cosa fa | Quando usarlo |
 | --- | --- | --- |
@@ -121,17 +135,41 @@ Nessuna esportazione modifica i file analizzati.
 
 ---
 
-## File di log
+## File di log (troubleshooting)
 
-Ogni scansione, errore di permesso e azione di pulizia viene scritta su disco, con rotazione automatica (massimo circa 5 MB).
+DupFinder usa **electron-log**. In sviluppo scrive anche in console; in produzione (e comunque sempre) scrive su **file persistente** con rotazione automatica (circa 5 MB per file).
 
-Percorsi tipici:
+Livello: `debug`. Viene registrato l’avvio (OS, architettura, versioni Node/Electron), ogni cartella aggiunta, ogni cambio filtro, inizio/fine scansione, file/cartelle ignorati per permessi (`EPERM`, `EACCES`, `EBUSY`), hash parziale e completo, export, eliminazioni, errori UI.
 
-- **Windows:** `%USERPROFILE%\AppData\Roaming\dupfinder\logs\main.log`
-- **macOS:** `~/Library/Logs/dupfinder/main.log`
-- **Linux:** `~/.config/dupfinder/logs/main.log`
+### Dove sono i file
 
-Il pulsante **File di Log** in intestazione mostra il percorso esatto su questa macchina. Puoi allegare il file a una segnalazione su GitHub.
+Il nome cartella dell’app è `dupfinder` (campo `name` in `package.json`). Percorsi predefiniti di electron-log:
+
+| Sistema | Percorso |
+| --- | --- |
+| **Windows** | `%USERPROFILE%\AppData\Roaming\dupfinder\logs\main.log` |
+| **macOS** | `~/Library/Logs/dupfinder/main.log` |
+| **Linux** | `~/.config/dupfinder/logs/main.log` |
+
+Come aprirli in un clic:
+
+- Nell’app: pulsante **File di Log** (mostra il path esatto su *questa* macchina).
+- **Windows:** `Win + R` → incolla `%USERPROFILE%\AppData\Roaming\dupfinder\logs` → Invio.
+- **macOS:** Finder → Vai → Vai alla cartella… → `~/Library/Logs/dupfinder`.
+- **Linux:** file manager o `xdg-open ~/.config/dupfinder/logs`.
+
+Nella stessa cartella possono comparire file ruotati (`main.old.log` o simili). Allega **tutta la cartella** `logs` a una issue su GitHub.
+
+### Cosa cercare nel log
+
+Esempi di righe utili:
+
+- `[Scanner] Impossibile leggere directory ... [EACCES]` — cartella protetta, la scansione è andata avanti.
+- `[Hasher] Errore lettura hash parziale ... [EBUSY]` — file in uso, saltato.
+- `[RendererUI] Avvio scansione con criteri:` — conferma dei filtri scelti.
+- `Scansione interrotta` — l’utente ha premuto Interrompi.
+
+Se l’app non parte, il log potrebbe non esistere ancora: in quel caso indica sistema operativo, versione scaricata e messaggio SmartScreen/antivirus.
 
 ---
 
@@ -173,17 +211,57 @@ No. DupFinder non sposta nel Cestino. Usa l'anteprima e l'esportazione prima del
 
 ---
 
-## Licenza
+## Architettura
 
-DupFinder è distribuito con licenza **MIT**. Vedi il file `LICENSE` nel repository.
+Due processi Electron, isolati:
 
-Autore: Fabio Rossi ([IlRed89](https://github.com/IlRed89/DupFinder)).
+```
+Renderer (HTML/CSS/JS)  --preload.js / contextBridge-->  Main (Node.js)
+        UI, progresso, risultati                         dialoghi nativi, scan, hash, log, disco
+```
+
+Il renderer **non** ha `nodeIntegration`. Parla solo con `window.dupFinderAPI` (canali IPC in `preload.js`).
+
+```
+DupFinder/
+├── main.js                      # ciclo di vita, BrowserWindow, handler IPC
+├── preload.js                   # contextBridge (API sicura verso il renderer)
+├── package.json                 # dipendenze e configurazione electron-builder
+├── LICENSE                      # MIT
+├── README.md                    # questo file (anche extraResource nel pacchetto)
+├── build/
+│   ├── icon.svg                 # master vettoriale (lente + due documenti)
+│   ├── icon.png                 # Linux / tray (512×512)
+│   ├── icon.ico                 # Windows
+│   └── icon.icns                # macOS
+├── scripts/
+│   └── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
+└── src/
+    ├── logger.js                # electron-log (console + file)
+    ├── hasher.js                # chunk 1 MB, poi stream SHA-256/MD5
+    ├── scanner.js               # walk cross-platform, filtri, raggruppamento
+    ├── readme.js                # risolve README.md in dev e nel pacchetto
+    └── renderer/
+        ├── index.html
+        ├── styles.css
+        ├── renderer.js          # eventi UI e progresso
+        └── markdown.js          # rendering del manuale in-app
+```
+
+Pipeline di scansione (tutta asincrona, non blocca l’UI):
+
+1. Normalizzazione path (`path.resolve` / `path.join`).
+2. Walk con `fs.promises` + `withFileTypes`; symlink non seguiti.
+3. Bucket per dimensione/nome/estensione/data.
+4. Hash parziale 1 MB solo sui bucket con ≥ 2 file.
+5. Hash completo in stream da 64 KB se il parziale coincide.
+6. Errori di permesso: log `warn`, si passa oltre.
 
 ---
 
-## Per chi sviluppa
+## Sviluppo e compilazione
 
-Requisiti: Node.js 20 o 22, npm 10.
+Requisiti: **Node.js 20 o 22**, **npm 10+**.
 
 ```bash
 git clone https://github.com/IlRed89/DupFinder.git
@@ -193,12 +271,24 @@ npm test
 npm start
 ```
 
-Pacchetti:
+| Comando | Output |
+| --- | --- |
+| `npm start` | App in sviluppo |
+| `npm test` | Test hasher, scanner, README |
+| `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
+| `npm run dist:win` | `dist/DupFinder-windows-portable.exe` |
+| `npm run dist:linux` | `dist/DupFinder-linux-x86_64.AppImage` |
+| `npm run dist:mac` | `dist/DupFinder-mac-<arch>.dmg` (**solo su macOS**) |
+| `npm run dist` | Windows portable + Linux AppImage (da Linux/CI) |
 
-```bash
-npm run dist:win-portable   # Windows .exe portatile
-npm run dist:linux          # Linux .AppImage
-npm run dist:mac            # macOS .dmg
-```
+`README.md` viene copiato nelle risorse del pacchetto (`extraResources`) e letto dalla voce **Guida**.
 
-I file finiscono in `dist/`. `README.md` viene incluso nell'applicazione (`extraResources`) e può essere letto dalla voce **Guida**.
+Il DMG va compilato su un Mac. La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`).
+
+---
+
+## Licenza
+
+DupFinder è distribuito con licenza **MIT**. Vedi il file [LICENSE](LICENSE).
+
+Autore: Fabio Rossi ([IlRed89](https://github.com/IlRed89/DupFinder)).
