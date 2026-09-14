@@ -8,9 +8,10 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test src/**/*.test.js",
+    "icons": "node scripts/generate-icons.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
+    "dist": "electron-builder --win portable --linux AppImage",
+    "dist:win": "electron-builder --win portable",
     "dist:win-portable": "electron-builder --win portable",
     "dist:mac": "electron-builder --mac dmg",
     "dist:linux": "electron-builder --linux AppImage"
@@ -36,11 +37,13 @@
       "preload.js",
       "README.md",
       "src/**/*",
+      "!src/**/*.test.js",
       "build/icon.png",
       "build/icon.svg",
-      "node_modules/**/*",
       "package.json"
     ],
+    "asar": true,
+    "publish": null,
     "extraResources": [
       {
         "from": "README.md",
@@ -61,6 +64,7 @@
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.utilities",
+      "identity": null,
       "artifactName": "${productName}-mac-${arch}.dmg"
     },
     "linux": {
