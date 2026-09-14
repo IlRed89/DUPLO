@@ -1,0 +1,14 @@
+# Binaries
+dupfinder
+DupFinder-windows-amd64.exe
+DupFinder-*.exe
+*.exe
+
+# Build cache / test artifacts
+/dist/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
