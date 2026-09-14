@@ -60,6 +60,11 @@ const dom = {
   btnStartScan: document.getElementById('btnStartScan'),
   btnCancelScan: document.getElementById('btnCancelScan'),
   btnShowLogPath: document.getElementById('btnShowLogPath'),
+  btnShowGuide: document.getElementById('btnShowGuide'),
+  guideOverlay: document.getElementById('guideOverlay'),
+  guideContent: document.getElementById('guideContent'),
+  btnCloseGuide: document.getElementById('btnCloseGuide'),
+  btnOpenReadmeFile: document.getElementById('btnOpenReadmeFile'),
 
   // Barra di Avanzamento
   progressBarSection: document.getElementById('progressBarSection'),
@@ -104,8 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
   dom.btnStartScan.addEventListener('click', onStartScanClick);
   dom.btnCancelScan.addEventListener('click', onCancelScanClick);
 
-  // Listener visualizzazione log path
+  // Listener visualizzazione log path e guida README
   dom.btnShowLogPath.addEventListener('click', onShowLogPathClick);
+  dom.btnShowGuide.addEventListener('click', onShowGuideClick);
+  dom.btnCloseGuide.addEventListener('click', closeGuide);
+  dom.btnOpenReadmeFile.addEventListener('click', onOpenReadmeFileClick);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !dom.guideOverlay.hidden) {
+      closeGuide();
+    }
+  });
 
   // Listener esportazione report
   dom.btnExportJSON.addEventListener('click', () => onExportReport('json'));
@@ -562,6 +575,49 @@ async function onShowLogPathClick() {
     );
   } catch (err) {
     console.error('Errore percorso log:', err);
+  }
+}
+
+/**
+ * Apre il pannello Guida con il README incluso nel programma.
+ */
+async function onShowGuideClick() {
+  logToMain('info', 'Utente ha aperto la Guida (README incluso)');
+  dom.guideOverlay.hidden = false;
+  if (dom.guideContent.dataset.loaded === '1') {
+    return;
+  }
+  dom.guideContent.innerHTML = '<p class="guide-loading">Caricamento del manuale…</p>';
+  try {
+    const res = await window.dupFinderAPI.getReadme();
+    if (!res.success) {
+      throw new Error(res.error || 'README non disponibile');
+    }
+    const toHtml = (window.DupFinderMarkdown && window.DupFinderMarkdown.markdownToHtml)
+      ? window.DupFinderMarkdown.markdownToHtml
+      : (text) => `<pre>${escapeHtml(text)}</pre>`;
+    dom.guideContent.innerHTML = toHtml(res.content);
+    dom.guideContent.dataset.loaded = '1';
+    logToMain('info', `README caricato da ${res.path}`);
+  } catch (err) {
+    logToMain('error', `Impossibile aprire la Guida: ${err.message}`);
+    dom.guideContent.innerHTML = `<p>Impossibile caricare il manuale README.</p><p>${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function closeGuide() {
+  dom.guideOverlay.hidden = true;
+}
+
+async function onOpenReadmeFileClick() {
+  logToMain('info', 'Utente chiede di aprire README.md nel visualizzatore di sistema');
+  try {
+    const res = await window.dupFinderAPI.openReadme();
+    if (!res.success) {
+      alert(`Impossibile aprire README.md:\n${res.error || 'file non trovato'}`);
+    }
+  } catch (err) {
+    alert(`Impossibile aprire README.md:\n${err.message}`);
   }
 }
 

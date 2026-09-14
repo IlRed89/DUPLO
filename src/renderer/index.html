@@ -30,6 +30,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" id="btnShowGuide" title="Apri il manuale README incluso nel programma">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        Guida
+      </button>
       <button class="btn btn-secondary btn-sm" id="btnShowLogPath" title="Mostra percorso file di log di diagnostica">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         File di Log
@@ -229,11 +233,28 @@
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
           <h2>Nessuna scansione eseguita</h2>
-          <p>Aggiungi una o più cartelle dal pannello laterale a sinistra, seleziona i parametri di confronto e clicca su "Avvia Scansione".</p>
+          <p>Aggiungi una o più cartelle dal pannello laterale a sinistra, seleziona i parametri di confronto e clicca su "Avvia Scansione". Il pulsante <strong>Guida</strong> in alto a destra apre il manuale README incluso nel programma.</p>
         </div>
       </div>
 
     </main>
+  </div>
+
+  <!-- Pannello Guida: README incluso nell'applicazione -->
+  <div class="guide-overlay" id="guideOverlay" hidden>
+    <div class="guide-panel" role="dialog" aria-labelledby="guideTitle" aria-modal="true">
+      <div class="guide-header">
+        <div>
+          <h2 id="guideTitle">Guida di DupFinder</h2>
+          <p class="guide-subtitle">Manuale README incluso nel programma</p>
+        </div>
+        <div class="guide-header-actions">
+          <button class="btn btn-secondary btn-sm" id="btnOpenReadmeFile" title="Apre README.md con l'editor di testo del sistema">Apri file README.md</button>
+          <button class="btn btn-primary btn-sm" id="btnCloseGuide">Chiudi</button>
+        </div>
+      </div>
+      <article class="guide-content" id="guideContent"></article>
+    </div>
   </div>
 
   <!-- Modale di Conferma Azioni Critiche (Eliminazione/Pulizia) -->
@@ -253,6 +274,7 @@
   </div>
 
   <!-- Script del Renderer -->
+  <script src="markdown.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

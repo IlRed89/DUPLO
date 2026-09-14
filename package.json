@@ -34,10 +34,17 @@
     "files": [
       "main.js",
       "preload.js",
+      "README.md",
       "src/**/*",
       "build/icon.png",
       "node_modules/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "README.md",
+        "to": "README.md"
+      }
     ],
     "win": {
       "target": [

@@ -68,6 +68,18 @@ contextBridge.exposeInMainWorld('dupFinderAPI', {
   getLogPath: () => ipcRenderer.invoke('app:get-log-path'),
 
   /**
+   * Carica il manuale README.md incluso nell'applicazione.
+   * @returns {Promise<{success: boolean, path?: string, content?: string, error?: string}>}
+   */
+  getReadme: () => ipcRenderer.invoke('app:get-readme'),
+
+  /**
+   * Apre il file README.md con il visualizzatore di testo del sistema.
+   * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+   */
+  openReadme: () => ipcRenderer.invoke('app:open-readme'),
+
+  /**
    * Invia un messaggio di log dal Renderer al Main Process per memorizzarlo nel file di log.
    * @param {string} level - 'info' | 'warn' | 'error' | 'debug'
    * @param {string} message - Testo del log

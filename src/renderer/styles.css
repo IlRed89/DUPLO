@@ -759,3 +759,169 @@ body {
   gap: 0.75rem;
   background: var(--bg-card);
 }
+
+/* Pannello Guida (README incluso nel programma) */
+.guide-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.guide-overlay[hidden] {
+  display: none;
+}
+
+.guide-panel {
+  width: min(920px, 100%);
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.guide-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.guide-header h2 {
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.guide-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.guide-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.guide-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.5rem 1.75rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.guide-loading {
+  color: var(--text-dim);
+}
+
+.guide-content h1,
+.guide-content h2,
+.guide-content h3 {
+  color: #fff;
+  margin: 1.4rem 0 0.55rem;
+  letter-spacing: -0.02em;
+}
+
+.guide-content h1 {
+  font-size: 1.45rem;
+  margin-top: 0;
+}
+
+.guide-content h2 {
+  font-size: 1.12rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.guide-content h3 {
+  font-size: 0.98rem;
+  color: var(--primary);
+}
+
+.guide-content p,
+.guide-content li {
+  margin-bottom: 0.55rem;
+}
+
+.guide-content ul,
+.guide-content ol {
+  padding-left: 1.25rem;
+  margin: 0.4rem 0 0.9rem;
+}
+
+.guide-content code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  color: var(--primary);
+  user-select: text;
+}
+
+.guide-content pre {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  overflow: auto;
+  margin: 0.6rem 0 1rem;
+}
+
+.guide-content pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+}
+
+.guide-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.7rem 0 1.1rem;
+  font-size: 0.82rem;
+}
+
+.guide-content th,
+.guide-content td {
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.guide-content th {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.guide-content a {
+  color: var(--primary);
+}
+
+.guide-content hr {
+  border: 0;
+  border-top: 1px solid var(--border-color);
+  margin: 1.25rem 0;
+}
+
+.guide-content strong {
+  color: var(--text-main);
+}

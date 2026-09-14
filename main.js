@@ -12,6 +12,15 @@ const fs = require('fs');
 const fsp = fs.promises;
 const { logger, logSystemInfo, getLogFilePath } = require('./src/logger');
 const { ScanCancellationToken, findDuplicates, normalizeCrossPlatformPath } = require('./src/scanner');
+const { loadReadme, resolveReadmePath } = require('./src/readme');
+
+function packagedReadmeOptions() {
+  return {
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+    packaged: app.isPackaged
+  };
+}
 
 /**
  * Riferimento globale alla finestra principale per evitare che venga chiusa dal garbage collector.
@@ -233,6 +242,37 @@ ipcMain.handle('app:get-log-path', async () => {
   const logPath = getLogFilePath();
   logger.info(`[IPC] Richiesta percorso file di log: "${logPath}"`);
   return logPath;
+});
+
+/**
+ * Restituisce il testo del README incluso nell'applicazione (manuale utente).
+ */
+ipcMain.handle('app:get-readme', async () => {
+  try {
+    const loaded = loadReadme(packagedReadmeOptions());
+    logger.info(`[IPC] README caricato da: "${loaded.path}"`);
+    return { success: true, path: loaded.path, content: loaded.content };
+  } catch (err) {
+    logger.error(`[IPC] Impossibile leggere il README: ${err.message}`);
+    return { success: false, error: err.message };
+  }
+});
+
+/**
+ * Apre il file README.md con l'applicazione predefinita del sistema.
+ */
+ipcMain.handle('app:open-readme', async () => {
+  const readmePath = resolveReadmePath(packagedReadmeOptions());
+  logger.info(`[IPC] Apertura README nel visualizzatore di sistema: "${readmePath}"`);
+  if (!readmePath) {
+    return { success: false, error: 'README.md non trovato' };
+  }
+  const errorMsg = await shell.openPath(readmePath);
+  if (errorMsg) {
+    logger.error(`[IPC] shell.openPath ha restituito: ${errorMsg}`);
+    return { success: false, error: errorMsg };
+  }
+  return { success: true, path: readmePath };
 });
 
 /**
