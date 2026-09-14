@@ -44,8 +44,10 @@ coverage/
 .eslintcache
 *.tsbuildinfo
 
-# File temporanei dello script icone
+# File temporanei dello script icone e binari FFmpeg staged in build
 build/_icon-raster.html
+build/ffmpeg-staged/*
+!build/ffmpeg-staged/.gitkeep
 
 # Editor e sistema operativo
 .vscode/

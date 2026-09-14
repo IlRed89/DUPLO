@@ -136,3 +136,32 @@ test('Scanner: formato esatto e range dimensione scartano i file fuori filtro', 
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
+
+test('Scanner: Nomi Simili raggruppa remix senza richiedere hash identico', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-fuzzy-'));
+  await fsp.writeFile(path.join(tmpDir, 'Canzone.mp3'), 'audio-originale');
+  await fsp.writeFile(path.join(tmpDir, 'Canzone (Remix).mp3'), 'audio-remix-diverso');
+  await fsp.writeFile(path.join(tmpDir, 'Relazione-finale.pdf'), 'documento');
+
+  const criteria = {
+    matchName: false,
+    matchFuzzyName: true,
+    matchSize: false,
+    matchDate: false,
+    matchHash: false,
+    matchExtension: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: [],
+    excludeExtensions: [],
+    includeHidden: false
+  };
+
+  const groups = await findDuplicates([tmpDir], criteria, new ScanCancellationToken(), () => {});
+  assert.equal(groups.length, 1, 'I due mp3 devono formare un solo gruppo fuzzy');
+  assert.equal(groups[0].files.length, 2);
+  assert.ok(groups[0].files.every((f) => /Canzone/i.test(f.name)));
+
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});

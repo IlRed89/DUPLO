@@ -16,6 +16,7 @@ const fsp = fs.promises;
 const path = require('path');
 const { logger } = require('./logger');
 const { computePartialHash, computeFullHash } = require('./hasher');
+const { clusterByFuzzyName, FUZZY_NAME_THRESHOLD } = require('./fuzzyName');
 
 /**
  * Normalizza un percorso di file o cartella per renderlo coerente su qualsiasi sistema operativo.
@@ -36,6 +37,7 @@ function normalizeCrossPlatformPath(rawPath) {
  * Struttura di dati per le opzioni di scansione configurate dall'utente.
  * @typedef {Object} ScanCriteria
  * @property {boolean} matchName - Se true, richiede che i file abbiano esattamente lo stesso nome
+ * @property {boolean} matchFuzzyName - Se true, raggruppa nomi con similarità ≥ 80% (Levenshtein/Dice)
  * @property {boolean} matchSize - Se true, confronta la dimensione esatta in byte (raccomandato come primo filtro)
  * @property {boolean} matchDate - Se true, confronta la data di ultima modifica (mtime)
  * @property {boolean} matchHash - Se true, esegue il confronto crittografico dei contenuti a due stadi
@@ -261,6 +263,8 @@ async function findDuplicates(directories, criteria, token, onProgress) {
     if (criteria.matchSize) {
       keyParts.push(`size:${file.size}`);
     }
+    // Nome esatto e fuzzy sono mutuamente esclusivi nella chiave:
+    // se entrambi sono attivi, vince l'esatto (il fuzzy si applicherebbe a un insieme già identico).
     if (criteria.matchName) {
       keyParts.push(`name:${file.name.toLowerCase()}`);
     }
@@ -287,6 +291,27 @@ async function findDuplicates(directories, criteria, token, onProgress) {
     if (files.length > 1) {
       candidateBuckets.push(files);
     }
+  }
+
+  // Fase 7.0: dentro ogni bucket (già filtrato per size/ext/data) uniamo i nomi simili.
+  if (criteria.matchFuzzyName && !criteria.matchName) {
+    logger.info(`[Scanner] Fuzzy name attivo (soglia ${FUZZY_NAME_THRESHOLD}). Spezzo i bucket per similarità.`);
+    const fuzzyBuckets = [];
+    for (let b = 0; b < candidateBuckets.length; b += 1) {
+      if (token && token.isCancelled) {
+        break;
+      }
+      const clustered = clusterByFuzzyName(candidateBuckets[b], FUZZY_NAME_THRESHOLD);
+      for (let c = 0; c < clustered.length; c += 1) {
+        fuzzyBuckets.push(clustered[c]);
+      }
+    }
+    // Se l'unico criterio "di gruppo" è il fuzzy e non c'erano altre chiavi,
+    // candidateBuckets può essere un solo gruppo "all": clusterByFuzzyName lo spezza.
+    logger.info(`[Scanner] Fuzzy: ${candidateBuckets.length} bucket → ${fuzzyBuckets.length} cluster`);
+    candidateBuckets = fuzzyBuckets;
+  } else if (criteria.matchFuzzyName && criteria.matchName) {
+    logger.warn('[Scanner] Nomi Simili ignorato: è attivo anche Stesso Nome File (confronto esatto)');
   }
 
   logger.info(`[Scanner] Individuati ${candidateBuckets.length} gruppi con potenziali duplicati.`);

@@ -12,12 +12,15 @@
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win --linux",
     "dist:win": "electron-builder --win",
+    "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\"",
     "dist:win-dir": "electron-builder --win dir",
     "dist:mac": "electron-builder --mac dir",
     "dist:linux": "electron-builder --linux dir"
   },
   "dependencies": {
-    "electron-log": "^5.4.4"
+    "electron-log": "^5.4.4",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0"
   },
   "devDependencies": {
     "electron": "^33.4.11",
@@ -43,22 +46,52 @@
       "package.json"
     ],
     "asar": true,
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/ffprobe-static/**"
+    ],
     "publish": null,
+    "beforePack": "./scripts/stageFfmpegResources.js",
+    "afterAllArtifactBuild": "./scripts/flattenWinZip.js",
     "extraResources": [
       {
         "from": "README.md",
         "to": "README.md"
+      },
+      {
+        "from": "build/ffmpeg-staged",
+        "to": "ffmpeg"
+      },
+      {
+        "from": "node_modules/ffmpeg-static",
+        "to": "ffmpeg",
+        "filter": [
+          "ffmpeg",
+          "ffmpeg.exe"
+        ]
+      },
+      {
+        "from": "node_modules/ffprobe-static/bin",
+        "to": "ffprobe-bin"
       }
     ],
     "win": {
       "target": [
         {
           "target": "zip",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         }
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "certificateFile": "${env.WIN_CSC_FILE}",
+      "certificatePassword": "${env.WIN_CSC_PASSWORD}",
+      "signingHashAlgorithms": [
+        "sha256"
+      ]
     },
     "mac": {
       "target": [

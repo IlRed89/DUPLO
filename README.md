@@ -29,9 +29,42 @@ DupFinder **non è un unico exe portatile**: la release contiene una **cartella*
 1. Scarica `DupFinder-1.0.0-win.zip` (64-bit) o `DupFinder-1.0.0-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DupFinder.exe**.
-4. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
+4. Se compare **Windows SmartScreen**, leggi il riquadro [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice) qui sotto.
 
-Su Linux scarica `DupFinder-linux-x64.zip`, estrai e avvia `./DupFinder` da `linux-unpacked` (`chmod +x DupFinder` se serve). Su macOS la cartella unpacked va compilata su un Mac (`npm run dist:mac`): dentro trovi `DupFinder.app`.
+Lo zip Windows è **piatto**: dopo l’estrazione trovi `DupFinder.exe` e le `.dll` **nella stessa cartella**, senza una sottocartella padre. Non spostare solo l’exe.
+
+Su Linux scarica `DupFinder-linux-x64.zip`, estrai e avvia `./DupFinder` (`chmod +x DupFinder` se serve). Su macOS la cartella unpacked va compilata su un Mac (`npm run dist:mac`): dentro trovi `DupFinder.app`.
+
+---
+
+## Windows SmartScreen e firma del codice
+
+**Non esiste un bypass “via codice” di SmartScreen.** Windows tratta come non attendibili gli `.exe` scaricati da Internet se **non sono firmati** con un certificato Authenticode rilasciato da una CA riconosciuta (o se il file è troppo nuovo e ha pochi download). DupFinder, di default, **non è firmato**: è un progetto open source senza certificato a pagamento.
+
+### Cosa fare se vedi “Windows ha protetto il PC”
+
+1. Clicca **Ulteriori informazioni**.
+2. Clicca **Esegui comunque**.
+3. Confronta l’hash dello zip con `SHA256SUMS.txt` nella release, così sai di avere il file originale.
+
+Non disattivare SmartScreen a livello di sistema. Non rinominare l’exe per “ingannarlo”: non funziona e riduce la tracciabilità.
+
+### Come firmare l’eseguibile (se hai un certificato)
+
+Serve un certificato Authenticode (file `.pfx` / `.p12`) e la password. Dalla root del progetto, **su Windows**:
+
+```bash
+set WIN_CSC_FILE=C:\percorso\certificato.pfx
+set WIN_CSC_PASSWORD=la-tua-password
+```
+
+In `package.json` i campi `win.certificateFile` e `win.certificatePassword` leggono queste variabili (`${env.WIN_CSC_FILE}`, `${env.WIN_CSC_PASSWORD}`). Imposta anche `signAndEditExecutable` a `true` nella sezione `win` (resta `false` nelle build Linux/CI, dove la firma Windows non è disponibile).
+
+In alternativa electron-builder riconosce le variabili standard `CSC_LINK` (path o URL del certificato) e `CSC_KEY_PASSWORD`.
+
+Dopo la firma, SmartScreen può comunque comparire per qualche giorno finché il certificato non accumula reputazione. Un certificato EV riduce di molto l’avviso; un certificato self-signed **non** toglie SmartScreen.
+
+FFmpeg e FFprobe sono **già dentro lo zip** (cartella risorse / `ffmpeg-static`): non serve installarli a parte.
 
 ---
 
@@ -77,6 +110,7 @@ I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa *
 | **Stessa Dimensione** (consigliato) | Raggruppa i file con lo stesso numero di byte. È istantaneo e scarta subito quasi tutto. | Sempre, salvo casi rarissimi. |
 | **Hash Contenuto (2-Step)** (consigliato) | Verifica che il contenuto sia identico byte per byte. | Quando ti serve la certezza (foto, video, documenti copiati). |
 | **Stesso Nome File** | Richiede il nome identico (`vacanze.jpg` ≠ `vacanze (1).jpg`). | Solo se cerchi copie con lo stesso nome. |
+| **Nomi Simili (Fuzzy)** | Raggruppa nomi con similarità ≥ 80% (Levenshtein + Dice; ignora remix tra parentesi). | `Canzone.mp3` e `Canzone (Remix).mp3`. Se è attivo anche **Stesso Nome**, vince l’esatto. Con **Hash** restano uniti solo se il contenuto è identico: per i remix “solo nome”, togli Hash. |
 | **Stessa Estensione** | Richiede la stessa estensione (non distingue maiuscole: `.JPG` = `.jpg`). | Per limitare il confronto a un tipo di file. |
 | **Stessa Data di Modifica** | Richiede lo stesso timestamp di ultima scrittura. | Se cerchi copie fatte nello stesso istante; esclude i file ricopiati più tardi. |
 
@@ -254,7 +288,9 @@ DupFinder/
 │   ├── icon.ico                 # Windows
 │   └── icon.icns                # macOS
 ├── scripts/
-│   └── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
+│   ├── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
+│   ├── flattenWinZip.js         # ZIP Windows piatto (exe/dll in radice)
+│   └── stageFfmpegResources.js  # beforePack: copia/scarica ffmpeg+ffprobe
 └── src/
     ├── logger.js                # electron-log (console + file)
     ├── hasher.js                # chunk 1 MB, poi stream SHA-256/MD5
@@ -262,6 +298,8 @@ DupFinder/
     ├── dropFilter.js            # drop: statSync, solo directory
     ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
     ├── advancedFilters.js       # parsing formato esatto, date, KB/MB
+    ├── fuzzyName.js             # similarità nomi (Levenshtein + Dice, soglia 80%)
+    ├── ffmpegPaths.js           # path ffmpeg/ffprobe in dev e nel pacchetto
     ├── nativeMenu.js            # menu nativo it/en (Menu.buildFromTemplate)
     ├── readme.js                # risolve README.md in dev e nel pacchetto
     └── renderer/
@@ -298,20 +336,20 @@ npm start
 | Comando | Output |
 | --- | --- |
 | `npm start` | App in sviluppo |
-| `npm test` | Test hasher, scanner, categorie, splitter, drop, menu, README |
+| `npm test` | Test hasher, scanner, fuzzy, ffmpeg paths, ZIP piatto, categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DupFinder-1.0.0-win.zip`, `DupFinder-1.0.0-ia32-win.zip`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DupFinder-1.0.0-win.zip`, `DupFinder-1.0.0-ia32-win.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
 
 La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
 
-Per distribuire Windows: usa i `.zip` prodotti da electron-builder (contengono exe + runtime). L'utente deve lanciare `DupFinder.exe` **dentro** la cartella estratta.
+Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (hook `afterAllArtifactBuild`): in radice ci sono `DupFinder.exe` e le dll, senza cartella padre.
 
-`README.md` viene copiato nelle risorse del pacchetto (`extraResources`) e letto dalla voce **Guida**.
+`README.md` e i binari **ffmpeg/ffprobe** (`ffmpeg-static`, `ffprobe-static`) sono in `extraResources` / `asarUnpack`. All’avvio il Main Process scrive nel log i path risolti (dev: `node_modules`; produzione: `process.resourcesPath` o `app.asar.unpacked`).
 
-La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`) e non richiede Wine perché il target è `dir`, non un installer.
+La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`). Per firmare vedi [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
 
 ---
 

@@ -63,6 +63,7 @@ const dom = {
   chkMatchSize: document.getElementById('chkMatchSize'),
   chkMatchHash: document.getElementById('chkMatchHash'),
   chkMatchName: document.getElementById('chkMatchName'),
+  chkMatchFuzzyName: document.getElementById('chkMatchFuzzyName'),
   chkMatchExtension: document.getElementById('chkMatchExtension'),
   chkMatchDate: document.getElementById('chkMatchDate'),
   inputMinSize: document.getElementById('inputMinSize'),
@@ -278,6 +279,7 @@ function bindCriteriaLogging() {
     ['chkMatchSize', 'Stessa Dimensione'],
     ['chkMatchHash', 'Hash Contenuto'],
     ['chkMatchName', 'Stesso Nome'],
+    ['chkMatchFuzzyName', 'Nomi Simili (Fuzzy)'],
     ['chkMatchExtension', 'Stessa Estensione'],
     ['chkMatchDate', 'Stessa Data'],
     ['chkIncludeHidden', 'Includi nascosti']
@@ -526,6 +528,7 @@ function collectScanCriteria() {
     matchSize: dom.chkMatchSize.checked,
     matchHash: dom.chkMatchHash.checked,
     matchName: dom.chkMatchName.checked,
+    matchFuzzyName: !!(dom.chkMatchFuzzyName && dom.chkMatchFuzzyName.checked),
     matchExtension: dom.chkMatchExtension.checked,
     matchDate: dom.chkMatchDate.checked,
     hashAlgorithm: dom.selectHashAlgo.value,
@@ -541,7 +544,7 @@ function collectScanCriteria() {
 
   // Senza nessun criterio tutti i file finirebbero nello stesso bucket: è un falso positivo.
   const anyCriterion = criteria.matchSize || criteria.matchHash || criteria.matchName
-    || criteria.matchExtension || criteria.matchDate;
+    || criteria.matchFuzzyName || criteria.matchExtension || criteria.matchDate;
   if (!anyCriterion) {
     return null;
   }
@@ -568,6 +571,7 @@ function resetApp() {
     dom.chkMatchSize.checked = true;
     dom.chkMatchHash.checked = true;
     dom.chkMatchName.checked = false;
+    if (dom.chkMatchFuzzyName) dom.chkMatchFuzzyName.checked = false;
     dom.chkMatchExtension.checked = false;
     dom.chkMatchDate.checked = false;
     dom.chkIncludeHidden.checked = false;

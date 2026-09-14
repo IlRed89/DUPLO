@@ -19,6 +19,9 @@ test('README.md del progetto è trovato e contiene le sezioni del manuale', () =
   assert.match(loaded.content, /Pulizia Rapida/);
   assert.match(loaded.content, /## Domande frequenti/);
   assert.match(loaded.content, /Ricerca Avanzata/);
+  assert.match(loaded.content, /Nomi Simili/);
+  assert.match(loaded.content, /SmartScreen/);
+  assert.match(loaded.content, /WIN_CSC_FILE/);
   assert.match(loaded.content, /Categoria file/);
   assert.match(loaded.content, /ia32-win\.zip/);
   assert.ok(loaded.content.length > 4000, 'il manuale deve essere dettagliato');

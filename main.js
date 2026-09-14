@@ -19,6 +19,7 @@ const {
   resolveIncludeExtensions,
   normalizeDateRange
 } = require('./src/advancedFilters');
+const { logFfmpegAvailability } = require('./src/ffmpegPaths');
 
 function packagedReadmeOptions() {
   return {
@@ -126,6 +127,15 @@ function createWindow() {
  */
 app.whenReady().then(() => {
   logSystemInfo();
+  try {
+    logFfmpegAvailability({
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      packaged: app.isPackaged
+    });
+  } catch (err) {
+    logger.error(`[Main] Log FFmpeg non riuscito: ${err.message}`);
+  }
   // Menu nativo in italiano all'avvio; il Renderer potrà cambiarlo via IPC.
   try {
     createNativeMenu('it', nativeMenuActions());
