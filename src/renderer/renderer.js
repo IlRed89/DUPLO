@@ -139,6 +139,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.dupFinderAPI && typeof window.dupFinderAPI.onScanProgress === 'function') {
     window.dupFinderAPI.onScanProgress(handleScanProgress);
   }
+
+  // Voce nativa "Guida" / tasto F1: apre lo stesso pannello README del pulsante Guida.
+  if (window.dupFinderAPI && typeof window.dupFinderAPI.onOpenGuideFromMenu === 'function') {
+    window.dupFinderAPI.onOpenGuideFromMenu(() => {
+      logToMain('info', 'Guida aperta dalla barra dei menu nativa');
+      onShowGuideClick();
+    });
+  }
 });
 
 // =========================================================================

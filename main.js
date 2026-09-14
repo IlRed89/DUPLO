@@ -13,6 +13,7 @@ const fsp = fs.promises;
 const { logger, logSystemInfo, getLogFilePath } = require('./src/logger');
 const { ScanCancellationToken, findDuplicates, normalizeCrossPlatformPath } = require('./src/scanner');
 const { loadReadme, resolveReadmePath } = require('./src/readme');
+const { createNativeMenu } = require('./src/nativeMenu');
 
 function packagedReadmeOptions() {
   return {
@@ -33,6 +34,40 @@ let mainWindow = null;
  * @type {ScanCancellationToken|null}
  */
 let activeCancellationToken = null;
+
+/**
+ * Azioni collegate alle voci native Aiuto. Vengono ricreate ad ogni
+ * `createNativeMenu` così i click usano sempre il riferimento aggiornato
+ * a `mainWindow` (null se la finestra è stata chiusa).
+ *
+ * @returns {{ openGuide: function(): void, openLogs: function(): void }}
+ */
+function nativeMenuActions() {
+  return {
+    openGuide: () => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          logger.info('[Menu] Invio al Renderer della richiesta di aprire la Guida');
+          mainWindow.webContents.send('menu:open-guide');
+        }
+      } catch (err) {
+        logger.error(`[Menu] Impossibile notificare la Guida al Renderer: ${err.message}`);
+      }
+    },
+    openLogs: () => {
+      try {
+        const logPath = getLogFilePath();
+        const logDir = path.dirname(logPath);
+        logger.info(`[Menu] Apertura cartella log: "${logDir}"`);
+        shell.openPath(logDir).catch((err) => {
+          logger.error(`[Menu] shell.openPath log fallito: ${err.message}`);
+        });
+      } catch (err) {
+        logger.error(`[Menu] Impossibile aprire la cartella dei log: ${err.message}`);
+      }
+    }
+  };
+}
 
 /**
  * Crea e configura la finestra principale dell'applicazione.
@@ -79,6 +114,12 @@ function createWindow() {
  */
 app.whenReady().then(() => {
   logSystemInfo();
+  // Menu nativo in italiano all'avvio; il Renderer potrà cambiarlo via IPC.
+  try {
+    createNativeMenu('it', nativeMenuActions());
+  } catch (err) {
+    logger.error(`[Main] Menu nativo non applicato: ${err.message}`);
+  }
   createWindow();
 
   // Su macOS, ricrea la finestra quando l'icona nel dock viene cliccata e non ci sono altre finestre aperte
@@ -330,6 +371,22 @@ function formatBytes(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+/**
+ * Cambio lingua richiesto dal Renderer: ricostruisce istantaneamente
+ * la barra nativa (File/Modifica/… o File/Edit/…) con Menu.buildFromTemplate.
+ */
+ipcMain.on('language-changed', (_event, lang) => {
+  logger.info(`[IPC] language-changed ricevuto dal Renderer: "${lang}"`);
+  try {
+    const applied = createNativeMenu(lang, nativeMenuActions());
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('language-changed-applied', applied);
+    }
+  } catch (err) {
+    logger.error(`[IPC] Aggiornamento menu nativo fallito: ${err.message}`);
+  }
+});
 
 /**
  * Riceve eventi e log generati dal Renderer Process e li scrive nel logger persistente.

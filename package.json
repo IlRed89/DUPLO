@@ -10,11 +10,11 @@
     "test": "node --test src/**/*.test.js",
     "icons": "node scripts/generate-icons.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win portable --linux AppImage",
-    "dist:win": "electron-builder --win portable",
-    "dist:win-portable": "electron-builder --win portable",
-    "dist:mac": "electron-builder --mac dmg",
-    "dist:linux": "electron-builder --linux AppImage"
+    "dist": "electron-builder --win dir --linux dir",
+    "dist:win": "electron-builder --win dir",
+    "dist:win-dir": "electron-builder --win dir",
+    "dist:mac": "electron-builder --mac dir",
+    "dist:linux": "electron-builder --linux dir"
   },
   "dependencies": {
     "electron-log": "^5.4.4"
@@ -52,31 +52,25 @@
     ],
     "win": {
       "target": [
-        "portable"
+        "dir"
       ],
       "icon": "build/icon.ico",
-      "signAndEditExecutable": false,
-      "artifactName": "${productName}-windows-portable.exe"
+      "signAndEditExecutable": false
     },
     "mac": {
       "target": [
-        "dmg"
+        "dir"
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.utilities",
-      "identity": null,
-      "artifactName": "${productName}-mac-${arch}.dmg"
+      "identity": null
     },
     "linux": {
       "target": [
-        "AppImage"
+        "dir"
       ],
       "icon": "build/icon.png",
-      "category": "Utility",
-      "artifactName": "${productName}-linux-${arch}.AppImage"
-    },
-    "portable": {
-      "artifactName": "${productName}-windows-portable.exe"
+      "category": "Utility"
     }
   }
 }

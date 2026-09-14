@@ -87,6 +87,23 @@ contextBridge.exposeInMainWorld('dupFinderAPI', {
   logRendererEvent: (level, message) => ipcRenderer.send('log:renderer', { level, message }),
 
   /**
+   * Chiede al Main Process di ricostruire la barra dei menu nativa nella lingua indicata.
+   * @param {string} lang - 'it' | 'en' (altri valori: fallback italiano)
+   */
+  setLanguage: (lang) => ipcRenderer.send('language-changed', lang),
+
+  /**
+   * Sottoscrizione alla voce nativa Aiuto → Guida (F1).
+   * @param {function(): void} callback
+   * @returns {function(): void}
+   */
+  onOpenGuideFromMenu: (callback) => {
+    const subscription = () => callback();
+    ipcRenderer.on('menu:open-guide', subscription);
+    return () => ipcRenderer.removeListener('menu:open-guide', subscription);
+  },
+
+  /**
    * Sottoscrizione agli aggiornamenti di progresso in tempo reale inviati dal Main Process.
    * @param {function(Object): void} callback - Funzione chiamata ad ogni avanzamento
    * @returns {function(): void} Funzione per rimuovere il listener
