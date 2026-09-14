@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradiente di sfondo moderno -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Gradiente Documento 1 (Primario/Posteriore) -->
+    <linearGradient id="docGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Gradiente Documento 2 (Duplicato/Anteriore) -->
+    <linearGradient id="docGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+
+    <!-- Gradiente Lente di Ingrandimento -->
+    <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+
+    <!-- Vetro Lente di Ingrandimento -->
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(56, 189, 248, 0.4)" />
+      <stop offset="70%" stop-color="rgba(129, 140, 248, 0.15)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.3)" />
+    </linearGradient>
+
+    <!-- Manico Lente -->
+    <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Ombreggiatura morbida -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="8" stdDeviation="8" flood-opacity="0.45" flood-color="#000000" />
+    </filter>
+  </defs>
+
+  <!-- Sfondo arrotondato per icona app -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- DOCUMENTO 1 (Sinistro/Sotto - Originale) -->
+  <g filter="url(#dropShadow)">
+    <path d="M 110 120 L 220 120 L 270 170 L 270 340 A 16 16 0 0 1 254 356 L 110 356 A 16 16 0 0 1 94 340 L 94 136 A 16 16 0 0 1 110 120 Z" fill="url(#docGrad1)" />
+    <!-- Piega angolo Documento 1 -->
+    <path d="M 220 120 L 220 170 L 270 170 Z" fill="#bae6fd" opacity="0.9" />
+    <!-- Linee di testo simulate Documento 1 -->
+    <rect x="124" y="200" width="100" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+    <rect x="124" y="226" width="116" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+    <rect x="124" y="252" width="80" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- DOCUMENTO 2 (Destro/Sopra - Duplicato identico) -->
+  <g filter="url(#dropShadow)">
+    <path d="M 170 160 L 280 160 L 330 210 L 330 380 A 16 16 0 0 1 314 396 L 170 396 A 16 16 0 0 1 154 380 L 154 176 A 16 16 0 0 1 170 160 Z" fill="url(#docGrad2)" />
+    <!-- Piega angolo Documento 2 -->
+    <path d="M 280 160 L 280 210 L 330 210 Z" fill="#c7d2fe" opacity="0.9" />
+    <!-- Linee di testo simulate Documento 2 (identiche per simboleggiare duplicato) -->
+    <rect x="184" y="240" width="100" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+    <rect x="184" y="266" width="116" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+    <rect x="184" y="292" width="80" height="10" rx="5" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- BADGE "MATCH" = icona di uguaglianza per simboleggiare i duplicati -->
+  <g filter="url(#dropShadow)">
+    <circle cx="210" cy="340" r="26" fill="#10b981" />
+    <rect x="198" y="332" width="24" height="5" rx="2.5" fill="#ffffff" />
+    <rect x="198" y="343" width="24" height="5" rx="2.5" fill="#ffffff" />
+  </g>
+
+  <!-- LENTE DI INGRANDIMENTO (Ricerca & Analisi) -->
+  <g filter="url(#dropShadow)">
+    <!-- Manico della Lente -->
+    <path d="M 370 370 L 440 440 A 18 18 0 0 1 415 465 L 345 395 Z" fill="url(#handleGrad)" stroke="#b45309" stroke-width="4" stroke-linejoin="round" />
+
+    <!-- Bordo Esterno Lente -->
+    <circle cx="310" cy="310" r="88" fill="none" stroke="url(#lensGrad)" stroke-width="16" />
+
+    <!-- Vetro Lente Trasparente / Riflesso -->
+    <circle cx="310" cy="310" r="80" fill="url(#glassGrad)" />
+
+    <!-- Riflesso di luce ad arco sul vetro -->
+    <path d="M 255 275 A 64 64 0 0 1 345 255" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.6" />
+  </g>
+</svg>

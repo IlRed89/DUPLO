@@ -1,14 +1,32 @@
-# Binaries
-dupfinder
-DupFinder-windows-amd64.exe
-DupFinder-*.exe
-*.exe
+# Dipendenze Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# Build cache / test artifacts
-/dist/
+# Directory di output packaging electron-builder
+dist/
+out/
+build-artifacts/
 
-# OS / editor
+# File di ambiente e credenziali locali
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# File generati dall'editor e dal sistema operativo
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
+Desktop.ini
+
+# File di log generati localmente durante i test
+logs/
+*.log

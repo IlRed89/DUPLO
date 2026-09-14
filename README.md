@@ -1,79 +1,150 @@
-# DupFinder
+# DupFinder 🔍✨
 
-Trova **file duplicati per contenuto** (hash SHA-256) e ti aiuta a recuperare spazio su disco in sicurezza: elenco, report JSON/CSV, spostamento o eliminazione dei doppioni.
+[![Electron Version](https://img.shields.io/badge/Electron-33.x-47848F?logo=electron)](https://www.electronjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js)](https://nodejs.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](#)
+[![Release](https://img.shields.io/github/v/release/IlRed89/DupFinder)](https://github.com/IlRed89/DupFinder/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- Veloce: prima raggruppa per dimensione, poi confronta gli hash (concorrenza su tutti i core)
-- Sicuro: due file sono "duplicati" solo se il contenuto è **byte-identico**
-- Senza sorprese: `clean` senza `--yes` è sempre una simulazione
+**DupFinder** è un'applicazione desktop grafica, moderna, portatile e multipiattaforma (**Windows, macOS, Linux**) progettata per trovare ed eliminare in sicurezza i file duplicati sul tuo computer. 
 
-## Download (Windows)
+Sviluppata con un'interfaccia utente ultra user-friendly (**GUI scura, intuitiva e reattiva**), consente di scansionare più cartelle contemporaneamente e combinare parametri avanzati di confronto per garantire che vengano individuati solo file **veramente identici**.
 
-Vai su [**Releases**](https://github.com/IlRed89/DupFinder/releases), scarica `DupFinder-windows-amd64.exe` dall'ultima release e aprilo da PowerShell o Prompt dei comandi. Nessuna installazione richiesta.
+---
 
-## Uso
+## 📸 Caratteristiche Principali
 
-```powershell
-# Cerca duplicati nella cartella Foto
-.\DupFinder-windows-amd64.exe scan C:\Foto
+- 🖥️ **Interfaccia Grafica Moderna & Intuitiva**:
+  - Selezione visiva delle cartelle con finestre di dialogo native del sistema operativo.
+  - Monitoraggio in tempo reale della scansione con barra di avanzamento a due stadi.
+  - Statistiche immediate: totale file analizzati, gruppi duplicati, numero di doppioni e **spazio esatto recuperabile**.
+- ⚡ **Algoritmo di Confronto a Due Stadi ad Alte Prestazioni**:
+  1. **Pre-Filtro Rapido**: Raggruppamento per dimensione esatta in byte (elimina subito tutti i file a dimensione univoca).
+  2. **Hash Parziale (Chunk 1MB)**: Legge e confronta solo la testa dei file candidati per scartare rapidamente falsi positivi senza sovraccaricare il disco.
+  3. **Hash Completo (SHA-256 o MD5)**: Hashing asincrono a blocchi da 64KB tramite stream Node.js (garantisce corrispondenza byte-per-byte senza mai esaurire la memoria RAM, anche per file da diversi Gigabyte).
+- ⚙️ **Parametri di Confronto Flessibili**:
+  - **Dimensione file** (raccomandato come primo filtro istantaneo)
+  - **Hash del contenuto** (SHA-256 sicuro o MD5 veloce)
+  - **Stesso nome esatto**
+  - **Stessa estensione**
+  - **Data di ultima modifica**
+  - Filtri per dimensione minima in KB, estensioni incluse/escluse e file nascosti.
+- 🧹 **Gestione Sicura dei Duplicati**:
+  - Anteprima con distinzione automatica tra file **Originale** (verde) e **Duplicato** (rosso).
+  - Apertura immediata della cartella contenitore nel file manager nativo (Windows Explorer, macOS Finder, Linux File Manager).
+  - Eliminazione mirata del singolo file con dialogo di conferma preventiva.
+  - Funzione **Pulizia Rapida**: elimina automaticamente tutti i duplicati conservando solo l'originale con un clic.
+- 📊 **Esportazione Report**:
+  - Salvataggio dei risultati in formato **JSON** e **CSV**.
+- 🛡️ **Antiproiettile sui Permessi di Sistema**:
+  - Gestione specifica e silenziosa degli errori `EPERM`, `EACCES`, `EBUSY` su cartelle protette di Windows, macOS e Linux. La scansione prosegue sui percorsi accessibili senza mai arrestarsi o andare in crash.
+- 📝 **Logging Totale & Troubleshooting**:
+  - Sistema di tracciamento capillare con `electron-log`: ogni operazione, scansione, calcolo hash o azione utente viene salvata su un file di log fisico persistente.
 
-# Solo file sopra 1 MB, con report JSON e CSV
-.\DupFinder-windows-amd64.exe scan C:\Foto --min-size 1MB --json report.json --csv report.csv
+---
 
-# Solo immagini, saltando le cartelle di sistema
-.\DupFinder-windows-amd64.exe scan C:\Foto --ext jpg,png,heic --exclude-dir node_modules,.git
+## 📥 Download Eseguibile Portatile (Windows)
 
-# Simulazione pulizia (non tocca nulla): tiene la copia più recente
-.\DupFinder-windows-amd64.exe clean C:\Foto --keep newest --dry-run
+Non serve installare nulla: scarica l'eseguibile standalone pronto all'uso:
 
-# Pulizia vera: chiede conferma interattiva (digita SI)
-.\DupFinder-windows-amd64.exe clean C:\Foto --keep oldest --yes
+👉 [**Scarica DupFinder-windows-portable.exe**](https://github.com/IlRed89/DupFinder/releases/latest)
 
-# Sposta i doppioni in una cartella invece di eliminarli
-.\DupFinder-windows-amd64.exe clean C:\Foto --move-to C:\DaRivedere --yes
+Basta fare doppio clic sul file `.exe` per avviare subito l'applicazione.
+
+---
+
+## 🗺️ Dove Trovare i File di Log (Troubleshooting e Diagnostica)
+
+In produzione e durante l'uso quotidiano, **DupFinder** registra tutti gli eventi su file persistenti con rotazione automatica (max 5MB). In caso di anomalie o per inviare segnalazioni su GitHub, i file di log si trovano nei seguenti percorsi nativi:
+
+### 🪟 Windows
+```
+%USERPROFILE%\AppData\Roaming\dupfinder\logs\main.log
+```
+*(Puoi incollare `%USERPROFILE%\AppData\Roaming\dupfinder\logs` nella barra degli indirizzi di Esplora Risorse per aprirlo direttamente)*
+
+### 🍎 macOS
+```
+~/Library/Logs/dupfinder/main.log
 ```
 
-Su Linux/macOS la sintassi è identica (`./dupfinder scan /home/nome/Foto ...`).
+### 🐧 Linux
+```
+~/.config/dupfinder/logs/main.log
+```
 
-### Opzioni di `scan`
+> 💡 **Suggerimento:** All'interno dell'applicazione puoi cliccare sul pulsante **"File di Log"** in alto a destra per visualizzare istantaneamente il percorso esatto sul tuo computer.
 
-| Opzione | Descrizione |
-|---|---|
-| `--min-size 1KB` | Ignora i file più piccoli (accetta `KB`, `MB`, `GB`, `TB`) |
-| `--ext jpg,png` | Considera solo queste estensioni |
-| `--exclude-dir nomi` | Salta le cartelle con questi nomi |
-| `--hidden` | Includi anche file/cartelle nascosti |
-| `--json file` | Salva il report in JSON |
-| `--csv file` | Salva il report in CSV |
-| `--quiet` | Mostra solo il riepilogo |
+---
 
-### Opzioni di `clean`
+## 🧱 Architettura del Progetto
 
-| Opzione | Descrizione |
-|---|---|
-| `--keep newest\|oldest\|first` | Quale copia tenere (default: `newest`) |
-| `--move-to CARTELLA` | Sposta i doppioni qui invece di eliminarli |
-| `--dry-run` | Mostra cosa succederebbe senza toccare nulla |
-| `--yes` | Richiesto per procedere davvero (più conferma interattiva) |
+```
+DupFinder/
+├── build/                     # Asset grafici e icone multipiattaforma
+│   ├── icon.svg               # Master vettoriale (Lente d'ingrandimento + documenti)
+│   ├── icon.png               # Icona PNG 512x512
+│   ├── icon.ico               # Icona Windows multi-risoluzione
+│   └── icon.icns              # Icona nativa Apple macOS
+├── src/
+│   ├── logger.js              # Configurazione logging persistente (electron-log)
+│   ├── hasher.js              # Hashing a due stadi (partial chunk 1MB + full stream)
+│   ├── scanner.js             # Motore di navigazione filesystem, normalizzazione e filtri
+│   ├── scanner.test.js        # Test di unità automatizzati Node.js
+│   └── renderer/              # Frontend Interfaccia Grafica (GUI)
+│       ├── index.html         # Struttura semantica desktop
+│       ├── styles.css         # Tema scuro moderno, animazioni e layout reattivo
+│       └── renderer.js        # Gestione eventi UI, progress bar, modali e IPC
+├── main.js                    # Main Process di Electron (ciclo di vita, IPC, finestre)
+├── preload.js                 # Bridge IPC sicuro con contextBridge (contextIsolation attivo)
+├── package.json               # Dipendenze, script di build e config electron-builder
+└── .github/workflows/         # Pipeline CI/CD GitHub Actions per release automatizzate
+```
 
-## Compilare dai sorgenti
+---
 
-Serve [Go](https://go.dev/dl/) 1.22+:
+## 💻 Sviluppo Locale e Compilazione
 
+### Requisiti
+- **Node.js** 20+ o 22+
+- **npm** 10+
+
+### 1. Clonare e installare le dipendenze
 ```bash
-go test ./...
-go build -o dupfinder .
-
-# Eseguibile Windows (cross-compilazione da Linux/macOS)
-GOOS=windows GOARCH=amd64 go build -o DupFinder-windows-amd64.exe .
+git clone https://github.com/IlRed89/DupFinder.git
+cd DupFinder
+npm install
 ```
 
-## Come funziona
+### 2. Avviare i test unitari del motore
+```bash
+npm test
+```
 
-1. **Indicizzazione**: scorre le cartelle e raggruppa i file per dimensione (una dimensione unica = mai un duplicato).
-2. **Hash veloce**: sui gruppi rimasti calcola l'hash dei primi 64 KB per scartare i falsi positivi.
-3. **Hash completo**: calcola lo SHA-256 dell'intero contenuto, in parallelo.
-4. **Report**: i file con stesso SHA-256 sono duplicati, ordinati per spazio recuperabile.
+### 3. Avviare l'applicazione in modalità sviluppo
+```bash
+npm start
+```
 
-## Licenza
+### 4. Compilazione dei Pacchetti Distribuiti (`electron-builder`)
 
-MIT — vedi [LICENSE](LICENSE).
+- **Eseguibile Windows Portatile (`.exe`)**:
+  ```bash
+  npm run dist:win-portable
+  ```
+- **Immagine Linux Portatile (`.AppImage`)**:
+  ```bash
+  npm run dist:linux
+  ```
+- **Pacchetto Installatore macOS (`.dmg`)**:
+  ```bash
+  npm run dist:mac
+  ```
+
+Tutti i file compilati verranno generati all'interno della cartella `dist/`.
+
+---
+
+## 📄 Licenza
+
+Distribuito sotto licenza **MIT**. Consulta il file [LICENSE](LICENSE) per tutti i dettagli.
