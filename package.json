@@ -51,6 +51,7 @@
         "portable"
       ],
       "icon": "build/icon.ico",
+      "signAndEditExecutable": false,
       "artifactName": "${productName}-windows-portable.exe"
     },
     "mac": {
