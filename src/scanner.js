@@ -44,8 +44,11 @@ function normalizeCrossPlatformPath(rawPath) {
  * @property {number} minSizeBytes - Dimensione minima in byte (i file più piccoli vengono ignorati)
  * @property {number} maxSizeBytes - Dimensione massima in byte (0 = senza limite)
  * @property {string[]} includeExtensions - Lista di estensioni da includere (es. ['.jpg', '.png'])
+ * @property {string[]} customExtensions - Estensioni digitare in Ricerca Avanzata (hanno priorità sulla categoria)
  * @property {string[]} excludeExtensions - Lista di estensioni da escludere (es. ['.tmp', '.log'])
  * @property {boolean} includeHidden - Se true, analizza anche file e cartelle nascoste (es. che iniziano con '.')
+ * @property {number} [modifiedAfterMs] - mtime minimo (epoch ms, 0 = nessun limite inferiore)
+ * @property {number} [modifiedBeforeMs] - mtime massimo (epoch ms, 0 = nessun limite superiore)
  */
 
 /**
@@ -70,8 +73,10 @@ class ScanCancellationToken {
  * @param {ScanCancellationToken} token - Token per verificare se l'utente ha annullato l'operazione
  * @param {function(Object): void} onProgress - Callback per inviare aggiornamenti in tempo reale all'interfaccia
  * @param {Array<Object>} collectedFiles - Accumulatore interno dei file validi trovati
+ * @param {{ tooSmall: number, tooLarge: number, wrongExt: number, tooOld: number, tooNew: number }} skipStats
+ *   Contatori dei file scartati dai filtri avanzati (per il riepilogo in log).
  */
-async function walkDirectory(dirPath, criteria, token, onProgress, collectedFiles) {
+async function walkDirectory(dirPath, criteria, token, onProgress, collectedFiles, skipStats) {
   if (token && token.isCancelled) {
     return;
   }
@@ -104,8 +109,8 @@ async function walkDirectory(dirPath, criteria, token, onProgress, collectedFile
     }
 
     if (entry.isDirectory()) {
-      // Chiamata ricorsiva per le sotto-cartelle
-      await walkDirectory(fullPath, criteria, token, onProgress, collectedFiles);
+      // Chiamata ricorsiva per le sotto-cartelle (stesso oggetto skipStats: i conteggi sono globali).
+      await walkDirectory(fullPath, criteria, token, onProgress, collectedFiles, skipStats);
     } else if (entry.isFile()) {
       try {
         const stats = await fsp.stat(fullPath);
@@ -116,28 +121,61 @@ async function walkDirectory(dirPath, criteria, token, onProgress, collectedFile
           continue;
         }
 
-        // Filtro dimensione minima
-        if (criteria.minSizeBytes > 0 && fileSize < criteria.minSizeBytes) {
+        const minBytes = Number(criteria.minSizeBytes) || 0;
+        const maxBytes = Number(criteria.maxSizeBytes) || 0;
+
+        // Filtro dimensione minima (filtri base + Ricerca Avanzata, già convertiti in byte dal Renderer/Main).
+        if (minBytes > 0 && fileSize < minBytes) {
+          skipStats.tooSmall += 1;
+          logger.debug(`[Scanner] Scartato (dimensione < min ${minBytes} B): "${fullPath}" size=${fileSize}`);
           continue;
         }
 
-        // Filtro dimensione massima (se impostata)
-        if (criteria.maxSizeBytes > 0 && fileSize > criteria.maxSizeBytes) {
+        // Filtro dimensione massima (0 = nessun tetto).
+        if (maxBytes > 0 && fileSize > maxBytes) {
+          skipStats.tooLarge += 1;
+          logger.debug(`[Scanner] Scartato (dimensione > max ${maxBytes} B): "${fullPath}" size=${fileSize}`);
+          continue;
+        }
+
+        const afterMs = Number(criteria.modifiedAfterMs) || 0;
+        const beforeMs = Number(criteria.modifiedBeforeMs) || 0;
+        const mtimeMs = stats.mtimeMs;
+
+        // Filtro "Modificato dal": il file deve essere stato scritto in questa data o dopo.
+        if (afterMs > 0 && mtimeMs < afterMs) {
+          skipStats.tooOld += 1;
+          logger.debug(`[Scanner] Scartato (mtime ${new Date(mtimeMs).toISOString()} prima di ${new Date(afterMs).toISOString()}): "${fullPath}"`);
+          continue;
+        }
+
+        // Filtro "Modificato fino al": il file non deve essere più recente del limite.
+        if (beforeMs > 0 && mtimeMs > beforeMs) {
+          skipStats.tooNew += 1;
+          logger.debug(`[Scanner] Scartato (mtime ${new Date(mtimeMs).toISOString()} dopo ${new Date(beforeMs).toISOString()}): "${fullPath}"`);
           continue;
         }
 
         const ext = path.extname(entry.name).toLowerCase();
 
-        // Filtro estensioni incluse
+        // Filtro estensioni incluse (formato esatto OPPURE categoria: già risolto in includeExtensions).
         if (criteria.includeExtensions && criteria.includeExtensions.length > 0) {
           const matchInc = criteria.includeExtensions.some(e => e.toLowerCase() === ext || ('.' + e.toLowerCase()) === ext);
-          if (!matchInc) continue;
+          if (!matchInc) {
+            skipStats.wrongExt += 1;
+            logger.debug(`[Scanner] Scartato (estensione "${ext}" fuori da [${criteria.includeExtensions.join(', ')}]): "${fullPath}"`);
+            continue;
+          }
         }
 
         // Filtro estensioni escluse
         if (criteria.excludeExtensions && criteria.excludeExtensions.length > 0) {
           const matchExc = criteria.excludeExtensions.some(e => e.toLowerCase() === ext || ('.' + e.toLowerCase()) === ext);
-          if (matchExc) continue;
+          if (matchExc) {
+            skipStats.wrongExt += 1;
+            logger.debug(`[Scanner] Scartato (estensione esclusa "${ext}"): "${fullPath}"`);
+            continue;
+          }
         }
 
         const fileRecord = {
@@ -182,15 +220,21 @@ async function findDuplicates(directories, criteria, token, onProgress) {
   logger.info('[Scanner] ================================================');
   logger.info(`[Scanner] Avvio scansione per duplicati su ${directories.length} cartelle`);
   logger.info(`[Scanner] Criteri attivi: ${JSON.stringify(criteria)}`);
+  if (criteria.modifiedAfterMs || criteria.modifiedBeforeMs || criteria.maxSizeBytes) {
+    logger.info(`[Scanner] Filtri avanzati: mtime>=${criteria.modifiedAfterMs || 0} mtime<=${criteria.modifiedBeforeMs || 0} maxBytes=${criteria.maxSizeBytes || 0}`);
+  }
 
   const startTime = Date.now();
   const allFiles = [];
+  const skipStats = { tooSmall: 0, tooLarge: 0, wrongExt: 0, tooOld: 0, tooNew: 0 };
 
   // FASE 1: Esplorazione cartelle
   for (const dir of directories) {
     if (token && token.isCancelled) break;
-    await walkDirectory(dir, criteria, token, onProgress, allFiles);
+    await walkDirectory(dir, criteria, token, onProgress, allFiles, skipStats);
   }
+
+  logger.info(`[Scanner] File scartati dai filtri avanzati: ${JSON.stringify(skipStats)}`);
 
   if (token && token.isCancelled) {
     logger.info('[Scanner] Scansione interrotta durante la fase di raccolta file.');

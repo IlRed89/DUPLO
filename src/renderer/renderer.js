@@ -50,6 +50,14 @@ const dom = {
   selectLanguage: document.getElementById('selectLanguage'),
   selectFileCategory: document.getElementById('selectFileCategory'),
   categoryHint: document.getElementById('categoryHint'),
+  inputCustomExtensions: document.getElementById('inputCustomExtensions'),
+  inputModifiedFrom: document.getElementById('inputModifiedFrom'),
+  inputModifiedTo: document.getElementById('inputModifiedTo'),
+  inputAdvMinSize: document.getElementById('inputAdvMinSize'),
+  inputAdvMaxSize: document.getElementById('inputAdvMaxSize'),
+  selectSizeUnit: document.getElementById('selectSizeUnit'),
+  advancedSearchPanel: document.getElementById('advancedSearchPanel'),
+  btnResetApp: document.getElementById('btnResetApp'),
 
   // Criteri
   chkMatchSize: document.getElementById('chkMatchSize'),
@@ -118,6 +126,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initSplitter();
   initFolderDropZone();
   bindLanguageAndCategory();
+  bindAdvancedSearchLogging();
+  if (dom.btnResetApp) {
+    dom.btnResetApp.addEventListener('click', resetApp);
+  }
 
   // Listener per avvio e stop scansione
   dom.btnStartScan.addEventListener('click', onStartScanClick);
@@ -466,8 +478,49 @@ async function handleFolderDrop(event) {
  * @returns {object|null} criteri, oppure null se l'utente non ha scelto nessun parametro
  */
 function collectScanCriteria() {
-  const includeExts = getSelectedCategoryExtensions();
-  const minSizeKB = parseInt(dom.inputMinSize.value, 10) || 0;
+  const filters = window.DupFinderAdvancedFilters;
+  const categoryExts = getSelectedCategoryExtensions();
+
+  // Formato esatto: se l'utente ha digitato estensioni, la categoria viene ignorata (Main lo rilogga).
+  const customExts = filters && typeof filters.parseExtensionList === 'function'
+    ? filters.parseExtensionList(dom.inputCustomExtensions ? dom.inputCustomExtensions.value : '')
+    : [];
+
+  const resolved = filters && typeof filters.resolveIncludeExtensions === 'function'
+    ? filters.resolveIncludeExtensions(customExts, categoryExts)
+    : { includeExtensions: customExts.length ? customExts : categoryExts, usedCustom: customExts.length > 0 };
+
+  const unit = (dom.selectSizeUnit && dom.selectSizeUnit.value) || 'kb';
+  const simpleMinKb = parseInt(dom.inputMinSize && dom.inputMinSize.value, 10) || 0;
+  let minSizeBytes = simpleMinKb * 1024;
+  let maxSizeBytes = 0;
+
+  if (filters && typeof filters.sizeToBytes === 'function') {
+    const advMin = filters.sizeToBytes(dom.inputAdvMinSize && dom.inputAdvMinSize.value, unit);
+    const advMax = filters.sizeToBytes(dom.inputAdvMaxSize && dom.inputAdvMaxSize.value, unit);
+    // Il più restrittivo tra "Dim. minima (KB)" e il minimo dell'accordion.
+    if (advMin > 0) {
+      minSizeBytes = Math.max(minSizeBytes, advMin);
+    }
+    maxSizeBytes = advMax;
+  }
+
+  const afterMs = filters && typeof filters.dateInputToMs === 'function'
+    ? filters.dateInputToMs(dom.inputModifiedFrom && dom.inputModifiedFrom.value, false)
+    : 0;
+  const beforeMs = filters && typeof filters.dateInputToMs === 'function'
+    ? filters.dateInputToMs(dom.inputModifiedTo && dom.inputModifiedTo.value, true)
+    : 0;
+  const range = filters && typeof filters.normalizeDateRange === 'function'
+    ? filters.normalizeDateRange(afterMs, beforeMs)
+    : { modifiedAfterMs: afterMs, modifiedBeforeMs: beforeMs, swapped: false };
+
+  if (resolved.usedCustom) {
+    logToMain('info', `Formato esatto attivo (${resolved.includeExtensions.join(', ')}): categoria ignorata`);
+  }
+  if (range.swapped) {
+    logToMain('warn', 'Intervallo date invertito: scambio "dal" e "fino al"');
+  }
 
   const criteria = {
     matchSize: dom.chkMatchSize.checked,
@@ -476,11 +529,14 @@ function collectScanCriteria() {
     matchExtension: dom.chkMatchExtension.checked,
     matchDate: dom.chkMatchDate.checked,
     hashAlgorithm: dom.selectHashAlgo.value,
-    minSizeBytes: minSizeKB * 1024,
-    maxSizeBytes: 0,
-    includeExtensions: includeExts,
+    minSizeBytes,
+    maxSizeBytes,
+    includeExtensions: resolved.includeExtensions,
+    customExtensions: customExts,
     excludeExtensions: [],
-    includeHidden: dom.chkIncludeHidden.checked
+    includeHidden: dom.chkIncludeHidden.checked,
+    modifiedAfterMs: range.modifiedAfterMs,
+    modifiedBeforeMs: range.modifiedBeforeMs
   };
 
   // Senza nessun criterio tutti i file finirebbero nello stesso bucket: è un falso positivo.
@@ -490,6 +546,92 @@ function collectScanCriteria() {
     return null;
   }
   return criteria;
+}
+
+/**
+ * Riporta l'applicazione allo stato iniziale senza chiudere la finestra:
+ * cartelle, checkbox, categoria, ricerca avanzata e risultati.
+ */
+function resetApp() {
+  try {
+    if (state.isScanning) {
+      logToMain('warn', 'Reset rifiutato: scansione in corso');
+      alert('Interrompi la scansione prima di azzerare filtri e ricerca.');
+      return;
+    }
+
+    state.selectedFolders = [];
+    state.duplicateGroups = [];
+    state.totalFilesScanned = 0;
+    renderFolderList();
+
+    dom.chkMatchSize.checked = true;
+    dom.chkMatchHash.checked = true;
+    dom.chkMatchName.checked = false;
+    dom.chkMatchExtension.checked = false;
+    dom.chkMatchDate.checked = false;
+    dom.chkIncludeHidden.checked = false;
+    if (dom.inputMinSize) dom.inputMinSize.value = '0';
+    if (dom.selectHashAlgo) dom.selectHashAlgo.value = 'sha256';
+    if (dom.selectFileCategory) dom.selectFileCategory.value = 'all';
+    if (dom.selectLanguage) {
+      // La lingua del menu nativo non è un filtro di scansione: la lasciamo com'è.
+    }
+    updateCategoryHint();
+
+    if (dom.inputCustomExtensions) dom.inputCustomExtensions.value = '';
+    if (dom.inputModifiedFrom) dom.inputModifiedFrom.value = '';
+    if (dom.inputModifiedTo) dom.inputModifiedTo.value = '';
+    if (dom.inputAdvMinSize) dom.inputAdvMinSize.value = '';
+    if (dom.inputAdvMaxSize) dom.inputAdvMaxSize.value = '';
+    if (dom.selectSizeUnit) dom.selectSizeUnit.value = 'kb';
+    if (dom.advancedSearchPanel) dom.advancedSearchPanel.open = false;
+
+    if (dom.resultsList) dom.resultsList.innerHTML = '';
+    if (dom.statsBanner) dom.statsBanner.style.display = 'none';
+    if (dom.resultsToolbar) dom.resultsToolbar.style.display = 'none';
+    if (dom.progressBarSection) dom.progressBarSection.style.display = 'none';
+    if (dom.emptyPlaceholder) {
+      dom.emptyPlaceholder.style.display = 'flex';
+    }
+    if (dom.emptyPlaceholderTitle) {
+      dom.emptyPlaceholderTitle.textContent = 'Nessuna scansione eseguita';
+    }
+    if (dom.emptyPlaceholderText) {
+      dom.emptyPlaceholderText.textContent = 'Aggiungi cartelle dal pannello a sinistra (pulsante o trascinandole da Esplora file), scegli la categoria e i parametri, poi avvia la scansione.';
+    }
+
+    logToMain('info', 'Applicazione resettata dall\'utente');
+  } catch (err) {
+    logToMain('error', `Reset applicazione fallito: ${err.message}`);
+  }
+}
+
+/**
+ * Log di ogni variazione nei campi della Ricerca Avanzata + apertura accordion.
+ */
+function bindAdvancedSearchLogging() {
+  try {
+    if (dom.advancedSearchPanel) {
+      dom.advancedSearchPanel.addEventListener('toggle', () => {
+        logToMain('info', `Ricerca Avanzata ${dom.advancedSearchPanel.open ? 'aperta' : 'chiusa'}`);
+      });
+    }
+    const bindChange = (el, labelFn) => {
+      if (!el) return;
+      el.addEventListener('change', () => {
+        logToMain('info', labelFn(el));
+      });
+    };
+    bindChange(dom.inputCustomExtensions, (el) => `Formato esatto impostato a "${el.value}"`);
+    bindChange(dom.inputModifiedFrom, (el) => `Modificato dal: ${el.value || '(vuoto)'}`);
+    bindChange(dom.inputModifiedTo, (el) => `Modificato fino al: ${el.value || '(vuoto)'}`);
+    bindChange(dom.inputAdvMinSize, (el) => `Dimensione minima avanzata: ${el.value || '0'}`);
+    bindChange(dom.inputAdvMaxSize, (el) => `Dimensione massima avanzata: ${el.value || '(nessun tetto)'}`);
+    bindChange(dom.selectSizeUnit, (el) => `Unità dimensione avanzata: ${el.value}`);
+  } catch (err) {
+    logToMain('error', `bindAdvancedSearchLogging: ${err.message}`);
+  }
 }
 
 // =========================================================================

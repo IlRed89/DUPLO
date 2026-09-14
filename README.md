@@ -26,9 +26,9 @@ Indice:
 
 DupFinder **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DupFinder.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DupFinder-windows-x64.zip` dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
+1. Scarica `DupFinder-1.0.0-win.zip` (64-bit) o `DupFinder-1.0.0-win-ia32.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DupFinder/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
-3. Entra in `win-unpacked` (o nella cartella estratta) e fai doppio clic su **DupFinder.exe**.
+3. Entra nella cartella estratta e fai doppio clic su **DupFinder.exe**.
 4. Windows può mostrare SmartScreen perché l'eseguibile non è firmato: scegli **Ulteriori informazioni** e poi **Esegui comunque**.
 
 Su Linux scarica `DupFinder-linux-x64.zip`, estrai e avvia `./DupFinder` da `linux-unpacked` (`chmod +x DupFinder` se serve). Su macOS la cartella unpacked va compilata su un Mac (`npm run dist:mac`): dentro trovi `DupFinder.app`.
@@ -95,6 +95,15 @@ I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa *
   - **Documenti** — `.pdf, .doc, .docx, .xls, .xlsx, .txt`
   - **Video** — `.mp4, .mkv, .avi, .mov`
 - **Includi cartelle e file nascosti** — spunta solo se vuoi analizzare anche elementi che iniziano con `.` o che Windows marca come nascosti.
+
+### Ricerca Avanzata (accordion)
+
+Apri **Ricerca Avanzata** sotto i filtri per restringere ulteriormente l’indicizzazione (i file esclusi finiscono nel log):
+
+- **Formato esatto** — estensioni digitate a mano (`.txt, .csv`). Se il campo non è vuoto **sostituisce** la categoria.
+- **Modificato dal / fino al** — confronta `mtime` del file con l’intervallo (giornata locale). Se inverti le date, DupFinder le scambia e lo scrive nel log.
+- **Dimensione minima / massima** — in KB o MB (tendina Unità). Si combina con “Dim. Minima (KB)” prendendo il limite più restrittivo.
+- **Azzera Filtri e Ricerca** — svuota cartelle, ripristina i default e pulisce i risultati senza chiudere l’app.
 
 ---
 
@@ -252,6 +261,7 @@ DupFinder/
     ├── scanner.js               # walk cross-platform, filtri, raggruppamento
     ├── dropFilter.js            # drop: statSync, solo directory
     ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
+    ├── advancedFilters.js       # parsing formato esatto, date, KB/MB
     ├── nativeMenu.js            # menu nativo it/en (Menu.buildFromTemplate)
     ├── readme.js                # risolve README.md in dev e nel pacchetto
     └── renderer/
@@ -290,12 +300,14 @@ npm start
 | `npm start` | App in sviluppo |
 | `npm test` | Test hasher, scanner, categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
-| `npm run dist:win` | `dist/win-unpacked/` (eseguibile + runtime, **non** un exe unico) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DupFinder-*-win.zip`, `*-win-ia32.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
-| `npm run dist` | Cartelle unpacked Windows + Linux (da Linux/CI) |
+| `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
 
-Per distribuire: zippa `dist/win-unpacked` e `dist/linux-unpacked`. L'utente deve lanciare `DupFinder.exe` / `DupFinder` **dentro** quella cartella.
+La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
+
+Per distribuire Windows: usa i `.zip` prodotti da electron-builder (contengono exe + runtime). L'utente deve lanciare `DupFinder.exe` **dentro** la cartella estratta.
 
 `README.md` viene copiato nelle risorse del pacchetto (`extraResources`) e letto dalla voce **Guida**.
 

@@ -102,3 +102,37 @@ test('Scanner: la categoria Documenti include solo le estensioni hardcoded', asy
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
+
+test('Scanner: formato esatto e range dimensione scartano i file fuori filtro', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-adv-'));
+  const same = 'payload identico per filtri avanzati. '.repeat(80);
+  await fsp.writeFile(path.join(tmpDir, 'keep-a.csv'), same);
+  await fsp.writeFile(path.join(tmpDir, 'keep-b.csv'), same);
+  await fsp.writeFile(path.join(tmpDir, 'ignore.txt'), same);
+  await fsp.writeFile(path.join(tmpDir, 'tiny.csv'), 'x');
+
+  const criteria = {
+    matchName: false,
+    matchSize: true,
+    matchDate: false,
+    matchHash: true,
+    matchExtension: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 200,
+    maxSizeBytes: 0,
+    includeExtensions: ['.csv'],
+    customExtensions: ['.csv'],
+    excludeExtensions: [],
+    includeHidden: false,
+    modifiedAfterMs: 0,
+    modifiedBeforeMs: 0
+  };
+
+  const groups = await findDuplicates([tmpDir], criteria, new ScanCancellationToken(), () => {});
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].files.length, 2);
+  assert.ok(groups[0].files.every((f) => f.path.endsWith('.csv')));
+  assert.ok(groups[0].files.every((f) => f.size >= 200));
+
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});

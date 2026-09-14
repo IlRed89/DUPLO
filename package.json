@@ -10,8 +10,8 @@
     "test": "node --test src/**/*.test.js",
     "icons": "node scripts/generate-icons.js",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win dir --linux dir",
-    "dist:win": "electron-builder --win dir",
+    "dist": "electron-builder --win --linux",
+    "dist:win": "electron-builder --win",
     "dist:win-dir": "electron-builder --win dir",
     "dist:mac": "electron-builder --mac dir",
     "dist:linux": "electron-builder --linux dir"
@@ -52,7 +52,10 @@
     ],
     "win": {
       "target": [
-        "dir"
+        {
+          "target": "zip",
+          "arch": ["x64", "ia32"]
+        }
       ],
       "icon": "build/icon.ico",
       "signAndEditExecutable": false

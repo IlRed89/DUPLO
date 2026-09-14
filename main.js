@@ -15,6 +15,10 @@ const { ScanCancellationToken, findDuplicates, normalizeCrossPlatformPath } = re
 const { loadReadme, resolveReadmePath } = require('./src/readme');
 const { createNativeMenu } = require('./src/nativeMenu');
 const { filterDirectoryPaths } = require('./src/dropFilter');
+const {
+  resolveIncludeExtensions,
+  normalizeDateRange
+} = require('./src/advancedFilters');
 
 function packagedReadmeOptions() {
   return {
@@ -79,8 +83,9 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 900,
-    minWidth: 850,
-    minHeight: 640,
+    // Fase 6.0: sotto queste soglie header, sidebar e risultati si sovrapporrebbero.
+    minWidth: 920,
+    minHeight: 700,
     title: 'DupFinder - Trova File Duplicati',
     // Icona dell'applicazione (cross-platform con fallback su icon.png o icon.svg)
     icon: path.join(__dirname, 'build', 'icon.png'),
@@ -198,12 +203,48 @@ ipcMain.handle('fs:filter-directories', async (_event, rawPaths) => {
  * Avvio asincrono della scansione per la ricerca dei duplicati.
  */
 ipcMain.handle('scan:start', async (_event, payload) => {
-  const { directories, criteria } = payload;
+  const { directories } = payload || {};
   logger.info(`[IPC] Avvio richiesta scansione su ${directories ? directories.length : 0} cartelle`);
 
   if (!directories || directories.length === 0) {
     logger.warn('[IPC] Nessuna cartella valida ricevuta per la scansione');
     throw new Error('Specificare almeno una cartella da scansionare');
+  }
+
+  // Copia difensiva: non mutiamo l'oggetto arrivato dal Renderer.
+  const rawCriteria = (payload && payload.criteria) ? payload.criteria : {};
+  let criteria = { ...rawCriteria };
+
+  try {
+    // Formato esatto (customExtensions) batte la categoria generale (includeExtensions).
+    const resolvedExt = resolveIncludeExtensions(criteria.customExtensions, criteria.includeExtensions);
+    if (resolvedExt.usedCustom) {
+      logger.info(`[IPC] Formato esatto attivo [${resolvedExt.includeExtensions.join(', ')}]: categoria generale ignorata`);
+    } else {
+      logger.info(`[IPC] Estensioni da categoria: ${resolvedExt.includeExtensions.length ? resolvedExt.includeExtensions.join(', ') : '(tutti i tipi)'}`);
+    }
+    criteria.includeExtensions = resolvedExt.includeExtensions;
+
+    const range = normalizeDateRange(criteria.modifiedAfterMs, criteria.modifiedBeforeMs);
+    if (range.swapped) {
+      logger.warn('[IPC] Intervallo date invertito dall\'utente: scambio "dal" e "fino al"');
+    }
+    criteria.modifiedAfterMs = range.modifiedAfterMs;
+    criteria.modifiedBeforeMs = range.modifiedBeforeMs;
+
+    criteria.minSizeBytes = Number(criteria.minSizeBytes) || 0;
+    criteria.maxSizeBytes = Number(criteria.maxSizeBytes) || 0;
+    if (criteria.maxSizeBytes > 0 && criteria.minSizeBytes > criteria.maxSizeBytes) {
+      logger.warn(`[IPC] minSize (${criteria.minSizeBytes}) > maxSize (${criteria.maxSizeBytes}): scambio i limiti`);
+      const tmp = criteria.minSizeBytes;
+      criteria.minSizeBytes = criteria.maxSizeBytes;
+      criteria.maxSizeBytes = tmp;
+    }
+
+    logger.info(`[IPC] Criteri normalizzati: min=${criteria.minSizeBytes}B max=${criteria.maxSizeBytes}B after=${criteria.modifiedAfterMs} before=${criteria.modifiedBeforeMs}`);
+  } catch (normErr) {
+    logger.error(`[IPC] Normalizzazione criteri fallita: ${normErr.message}`);
+    throw new Error('Parametri di scansione non validi');
   }
 
   // Istanzia un nuovo token di cancellazione
