@@ -31,7 +31,7 @@ test('writeFlatZip mette i file in radice senza cartella padre', async () => {
   await fsp.writeFile(path.join(unpacked, 'ffmpeg.dll'), 'fake-dll');
   const zipPath = path.join(tmp, 'DupFinder-1.0.0-win.zip');
 
-  writeFlatZip(unpacked, zipPath);
+  await writeFlatZip(unpacked, zipPath);
   assert.ok(fs.existsSync(zipPath));
 
   const py = process.platform === 'win32' ? 'python' : 'python3';

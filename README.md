@@ -64,7 +64,16 @@ In alternativa electron-builder riconosce le variabili standard `CSC_LINK` (path
 
 Dopo la firma, SmartScreen può comunque comparire per qualche giorno finché il certificato non accumula reputazione. Un certificato EV riduce di molto l’avviso; un certificato self-signed **non** toglie SmartScreen.
 
-FFmpeg e FFprobe sono **già dentro lo zip** (cartella risorse / `ffmpeg-static`): non serve installarli a parte.
+DupFinder **non** usa FFmpeg: gli hash sono solo SHA-256/MD5 con il modulo nativo `crypto` di Node.js. Non installare binari extra.
+
+---
+
+## Icona Windows (`build/icon.ico`)
+
+L’eseguibile prende l’icona da **`build/icon.ico`** (`build.win.icon` in `package.json`). **Devi avere questo file nel repo prima di `npm run dist:win`**: se manca, Windows mostra l’icona Electron di default.
+
+- Per rigenerarla dal PNG master: `npm run icons` (scrive `build/icon.ico` e `build/icon.icns`).
+- In build Linux→Windows electron-builder non lancia rcedit (`signAndEditExecutable: false`). Lo hook `scripts/applyWinIcon.js` timbra comunque il `.ico` sull’exe con `resedit`.
 
 ---
 
@@ -285,21 +294,20 @@ DupFinder/
 ├── build/
 │   ├── icon.svg                 # master vettoriale (lente + due documenti)
 │   ├── icon.png                 # Linux / tray (512×512)
-│   ├── icon.ico                 # Windows
+│   ├── icon.ico                 # Windows — OBBLIGATORIO prima di dist:win
 │   └── icon.icns                # macOS
 ├── scripts/
 │   ├── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
-│   ├── flattenWinZip.js         # ZIP Windows piatto (exe/dll in radice)
-│   └── stageFfmpegResources.js  # beforePack: copia/scarica ffmpeg+ffprobe
+│   ├── flattenWinZip.js         # ZIP Windows piatto (archiver, exe/dll in radice)
+│   └── applyWinIcon.js          # afterPack: timbra icon.ico su DupFinder.exe
 └── src/
     ├── logger.js                # electron-log (console + file)
-    ├── hasher.js                # chunk 1 MB, poi stream SHA-256/MD5
+    ├── hasher.js                # crypto nativo: chunk 1 MB, poi stream SHA-256/MD5
     ├── scanner.js               # walk cross-platform, filtri, raggruppamento
     ├── dropFilter.js            # drop: statSync, solo directory
     ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
     ├── advancedFilters.js       # parsing formato esatto, date, KB/MB
     ├── fuzzyName.js             # similarità nomi (Levenshtein + Dice, soglia 80%)
-    ├── ffmpegPaths.js           # path ffmpeg/ffprobe in dev e nel pacchetto
     ├── nativeMenu.js            # menu nativo it/en (Menu.buildFromTemplate)
     ├── readme.js                # risolve README.md in dev e nel pacchetto
     └── renderer/
@@ -336,8 +344,8 @@ npm start
 | Comando | Output |
 | --- | --- |
 | `npm start` | App in sviluppo |
-| `npm test` | Test hasher, scanner, fuzzy, ffmpeg paths, ZIP piatto, categorie, splitter, drop, menu, README |
-| `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` |
+| `npm test` | Test hasher, scanner, fuzzy, ZIP piatto, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
+| `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
 | `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DupFinder-1.0.0-win.zip`, `DupFinder-1.0.0-ia32-win.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
@@ -345,11 +353,11 @@ npm start
 
 La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
 
-Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (hook `afterAllArtifactBuild`): in radice ci sono `DupFinder.exe` e le dll, senza cartella padre.
+Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`archiver`, hook `afterAllArtifactBuild`): in radice ci sono `DupFinder.exe` e le dll, **senza** cartella padre (`DupFinder-win32-x64` o simile).
 
-`README.md` e i binari **ffmpeg/ffprobe** (`ffmpeg-static`, `ffprobe-static`) sono in `extraResources` / `asarUnpack`. All’avvio il Main Process scrive nel log i path risolti (dev: `node_modules`; produzione: `process.resourcesPath` o `app.asar.unpacked`).
+Runtime: solo `electron-log`. `electron` / `electron-builder` / `archiver` / `resedit` / `png2icons` sono `devDependencies`. Nessun binario FFmpeg nel pacchetto.
 
-La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`). Per firmare vedi [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
+La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`). L’icona viene comunque applicata da `applyWinIcon.js`. Per firmare vedi [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
 
 ---
 

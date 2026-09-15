@@ -14,6 +14,7 @@
  */
 
 const fs = require('fs');
+// Solo crypto nativo Node.js: nessun binario esterno per gli hash.
 const crypto = require('crypto');
 const { logger } = require('./logger');
 
@@ -33,9 +34,10 @@ const DEFAULT_CHUNK_SIZE = 1024 * 1024;
  */
 async function computePartialHash(filePath, algorithm = 'sha256', chunkSize = DEFAULT_CHUNK_SIZE) {
   return new Promise((resolve, reject) => {
+    try {
     logger.debug(`[Hasher] Inizio calcolo hash parziale (${algorithm}, chunk: ${chunkSize} byte) per: "${filePath}"`);
     
-    // Validazione dell'algoritmo crittografico supportato
+    // Validazione dell'algoritmo crittografico supportato (sha256 o md5 via crypto)
     const validAlgo = (algorithm.toLowerCase() === 'md5') ? 'md5' : 'sha256';
     const hash = crypto.createHash(validAlgo);
 
@@ -57,6 +59,10 @@ async function computePartialHash(filePath, algorithm = 'sha256', chunkSize = DE
       logger.warn(`[Hasher] Errore lettura hash parziale per "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
       reject(err);
     });
+    } catch (err) {
+      logger.warn(`[Hasher] computePartialHash interrotto per "${filePath}": ${err.message}`);
+      reject(err);
+    }
   });
 }
 
@@ -71,6 +77,7 @@ async function computePartialHash(filePath, algorithm = 'sha256', chunkSize = DE
  */
 async function computeFullHash(filePath, algorithm = 'sha256', onProgress = null) {
   return new Promise((resolve, reject) => {
+    try {
     logger.debug(`[Hasher] Inizio calcolo hash COMPLETO (${algorithm}) per: "${filePath}"`);
 
     const validAlgo = (algorithm.toLowerCase() === 'md5') ? 'md5' : 'sha256';
@@ -98,6 +105,10 @@ async function computeFullHash(filePath, algorithm = 'sha256', onProgress = null
       logger.warn(`[Hasher] Errore calcolo hash completo per "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
       reject(err);
     });
+    } catch (err) {
+      logger.warn(`[Hasher] computeFullHash interrotto per "${filePath}": ${err.message}`);
+      reject(err);
+    }
   });
 }
 

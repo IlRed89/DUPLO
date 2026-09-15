@@ -1,50 +1,66 @@
 /**
  * @file flattenWinZip.js
  * @description Hook electron-builder `afterAllArtifactBuild`.
- * Rigenera gli ZIP Windows mettendo exe/dll/pak alla RADICE dell'archivio
- * (niente cartella padre tipo DupFinder-1.0.0-win/).
+ * Rigenera gli ZIP Windows con `archiver`: ogni entry è relativa a
+ * `win-unpacked` / `win-ia32-unpacked`, quindi exe e dll stanno in RADICE
+ * (niente cartella padre tipo DupFinder-win32-x64/).
  */
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
 
 /**
- * Crea uno zip i cui entry point sono relativi a `sourceDir` (nessun prefisso padre).
- * Usa Python 3 della macchina di build (già presente in CI Linux e su macOS).
+ * Crea uno zip i cui path sono relativi a `sourceDir` (nessun prefisso padre).
  *
  * @param {string} sourceDir - es. dist/win-unpacked
  * @param {string} destZip
+ * @returns {Promise<void>}
  */
 function writeFlatZip(sourceDir, destZip) {
-  const script = [
-    'import os, sys, zipfile',
-    'src, dest = sys.argv[1], sys.argv[2]',
-    'parent = os.path.dirname(dest)',
-    'if parent and not os.path.isdir(parent):',
-    '    os.makedirs(parent)',
-    'with zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as zf:',
-    '    for root, dirs, files in os.walk(src):',
-    '        for name in files:',
-    '            full = os.path.join(root, name)',
-    '            rel = os.path.relpath(full, src).replace(os.sep, "/")',
-    '            zf.write(full, rel)'
-  ].join('\n');
+  return new Promise((resolve, reject) => {
+    try {
+      const archiver = require('archiver');
+      const parent = path.dirname(destZip);
+      if (parent && !fs.existsSync(parent)) {
+        fs.mkdirSync(parent, { recursive: true });
+      }
+      const tmp = destZip + '.flat-tmp.zip';
+      const output = fs.createWriteStream(tmp);
+      // compressione standard: lo zip deve aprirsi su Explorer senza tool extra
+      const archive = archiver('zip', { zlib: { level: 9 } });
 
-  const tmp = destZip + '.flat-tmp.zip';
-  const py = process.platform === 'win32' ? 'python' : 'python3';
-  const result = spawnSync(py, ['-c', script, sourceDir, tmp], {
-    encoding: 'utf8'
+      output.on('close', () => {
+        try {
+          fs.renameSync(tmp, destZip);
+          console.log(`[flattenWinZip] Scritti ${archive.pointer()} byte in ${destZip}`);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+      output.on('error', (err) => {
+        reject(err);
+      });
+      archive.on('warning', (err) => {
+        console.warn(`[flattenWinZip] warning: ${err.message}`);
+      });
+      archive.on('error', (err) => {
+        reject(err);
+      });
+
+      archive.pipe(output);
+      // `false` = non wrappare in una sottocartella: file in root dello zip
+      archive.directory(sourceDir, false);
+      archive.finalize();
+    } catch (err) {
+      reject(err);
+    }
   });
-  if (result.status !== 0) {
-    const err = (result.stderr || result.stdout || 'zip piatto fallito').trim();
-    throw new Error(err);
-  }
-  fs.renameSync(tmp, destZip);
 }
 
 /**
  * @param {string} zipPath
+ * @param {string} outDir
  * @returns {string} cartella unpacked corrispondente
  */
 function unpackedDirForZip(zipPath, outDir) {
@@ -79,7 +95,7 @@ async function flattenWinZip(context) {
         continue;
       }
       console.log('[flattenWinZip] ZIP piatto:', zipPath, '←', sourceDir);
-      writeFlatZip(sourceDir, zipPath);
+      await writeFlatZip(sourceDir, zipPath);
       rebuilt.push(zipPath);
     } catch (err) {
       console.error('[flattenWinZip] Errore su', zipPath, err.message);
@@ -89,7 +105,6 @@ async function flattenWinZip(context) {
   return rebuilt;
 }
 
-// electron-builder carica afterAllArtifactBuild come default export.
 module.exports = flattenWinZip;
 module.exports.default = flattenWinZip;
 module.exports.writeFlatZip = writeFlatZip;

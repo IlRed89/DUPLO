@@ -19,7 +19,6 @@ const {
   resolveIncludeExtensions,
   normalizeDateRange
 } = require('./src/advancedFilters');
-const { logFfmpegAvailability } = require('./src/ffmpegPaths');
 
 function packagedReadmeOptions() {
   return {
@@ -88,8 +87,7 @@ function createWindow() {
     minWidth: 920,
     minHeight: 700,
     title: 'DupFinder - Trova File Duplicati',
-    // Icona dell'applicazione (cross-platform con fallback su icon.png o icon.svg)
-    icon: path.join(__dirname, 'build', 'icon.png'),
+    icon: resolveWindowIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,    // Sicurezza: disabilita Node.js nel renderer
@@ -123,19 +121,40 @@ function createWindow() {
 }
 
 /**
+ * Icona nativa della finestra: su Windows preferisce `build/icon.ico`
+ * (stesso file che electron-builder timbra sull'exe). Fallback PNG.
+ *
+ * @returns {string|undefined}
+ */
+function resolveWindowIcon() {
+  try {
+    const ico = path.join(__dirname, 'build', 'icon.ico');
+    const png = path.join(__dirname, 'build', 'icon.png');
+    if (process.platform === 'win32' && fs.existsSync(ico)) {
+      logger.info(`[Main] Icona finestra Windows: "${ico}"`);
+      return ico;
+    }
+    if (fs.existsSync(png)) {
+      logger.info(`[Main] Icona finestra: "${png}"`);
+      return png;
+    }
+    if (fs.existsSync(ico)) {
+      logger.info(`[Main] Icona finestra (ico fallback): "${ico}"`);
+      return ico;
+    }
+    logger.warn('[Main] Nessuna icona in build/icon.ico o build/icon.png');
+  } catch (err) {
+    logger.error(`[Main] Risoluzione icona fallita: ${err.message}`);
+  }
+  return undefined;
+}
+
+/**
  * Inizializzazione dell'applicazione Electron al completamento dell'evento 'ready'.
  */
 app.whenReady().then(() => {
   logSystemInfo();
-  try {
-    logFfmpegAvailability({
-      resourcesPath: process.resourcesPath,
-      appPath: app.getAppPath(),
-      packaged: app.isPackaged
-    });
-  } catch (err) {
-    logger.error(`[Main] Log FFmpeg non riuscito: ${err.message}`);
-  }
+  logger.info('[Main] Avvio senza FFmpeg: hashing solo con crypto nativo (SHA-256/MD5)');
   // Menu nativo in italiano all'avvio; il Renderer potrà cambiarlo via IPC.
   try {
     createNativeMenu('it', nativeMenuActions());
