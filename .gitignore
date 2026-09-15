@@ -46,6 +46,7 @@ coverage/
 
 # File temporanei dello script icone
 build/_icon-raster.html
+build/ffmpeg-staged/
 
 # Editor e sistema operativo
 .vscode/
