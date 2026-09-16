@@ -1,16 +1,14 @@
 # DUPLO 1.0.0
 
-Applicazione desktop Electron per trovare ed eliminare file duplicati (dimensione, hash SHA-256/MD5 a due step, nome, estensione, data).
+Release stabile definitiva. Estrai lo zip e avvia `DUPLO.exe` / `DUPLO` **nella stessa cartella** (serve insieme a dll/pak). Non è un exe unico.
 
 ## Download
 
-**Non è un exe unico.** Estrai lo zip e avvia `DUPLO.exe` / `DUPLO` **nella stessa cartella** (serve insieme a dll/pak).
-
 | File | Sistema |
 | --- | --- |
-| `DUPLO-1.0.0-win.zip` | Windows 64-bit |
-| `DUPLO-1.0.0-ia32-win.zip` | Windows 32-bit |
-| `DUPLO-linux-x64.zip` | Linux 64-bit |
+| `DUPLO-1.0.0-win-x64.zip` | Windows 64-bit |
+| `DUPLO-1.0.0-win-ia32.zip` | Windows 32-bit |
+| `DUPLO-1.0.0-linux-x64.zip` | Linux 64-bit |
 
 Confronta l’hash con `SHA256SUMS.txt`. L’eseguibile non è firmato: su Windows usa **Ulteriori informazioni → Esegui comunque**.
 
@@ -18,13 +16,12 @@ Linux **32-bit non è disponibile**: Electron 33 non pubblica più un runtime Li
 
 ## Cosa c’è in questa build
 
-- Menu nativo in italiano/inglese (tendina in alto a destra)
-- Categorie file fisse (immagini, audio, documenti, video)
-- Splitter trascinabile tra sidebar e risultati
-- Trascina cartelle sull’elenco (i file singoli vengono ignorati)
-- Ricerca Avanzata (estensioni, date, dimensione min/max)
-- Guida in-app (README) e log persistenti
+- Scansione duplicati: dimensione, hash SHA-256/MD5, nome, estensione, data
+- Overlay drag & drop a tutta finestra (path nativo nel preload, solo cartelle)
+- Menu nativo it/en, categorie file, splitter, Ricerca Avanzata, nomi simili
+- Guida in-app, log persistenti, export CSV/JSON, pulizia con conferma
+- Identità **DUPLO** (`DUPLO.exe`, titolo finestra, Task Manager)
 
 Eliminazione **definitiva** (niente Cestino). Conferma sempre prima della pulizia.
 
-Manuale: `README.md` in questo zip e pulsante **Guida** nell’app.
+Manuale: `README.md` in questo zip e pulsante **Guida** nell’app. Dettaglio: [CHANGELOG.md](../CHANGELOG.md).

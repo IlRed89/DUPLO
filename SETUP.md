@@ -1,6 +1,6 @@
 # Setup di DUPLO
 
-**Versione 1.1.4** · Windows, macOS e Linux
+**Versione 1.0.0** · Windows, macOS e Linux
 
 DUPLO non è un unico exe portatile: la release è una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Estrai tutto lo zip e avvia `DUPLO.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
@@ -10,15 +10,15 @@ File dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest):
 
 | File | Sistema |
 | --- | --- |
-| `DUPLO-1.1.4-win.zip` | Windows 64-bit |
-| `DUPLO-1.1.4-ia32-win.zip` | Windows 32-bit |
-| `DUPLO-1.1.4-linux-x64.zip` | Linux 64-bit |
+| `DUPLO-1.0.0-win-x64.zip` | Windows 64-bit |
+| `DUPLO-1.0.0-win-ia32.zip` | Windows 32-bit |
+| `DUPLO-1.0.0-linux-x64.zip` | Linux 64-bit |
 
 Confronta l'hash con `SHA256SUMS.txt` nella stessa release.
 
 ## Windows
 
-1. Scarica `DUPLO-1.1.4-win.zip` (64-bit) oppure `DUPLO-1.1.4-ia32-win.zip` (32-bit).
+1. Scarica `DUPLO-1.0.0-win-x64.zip` (64-bit) oppure `DUPLO-1.0.0-win-ia32.zip` (32-bit).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows ha protetto il PC** (SmartScreen): **Ulteriori informazioni** → **Esegui comunque**. L'eseguibile non è firmato.
@@ -27,7 +27,7 @@ Lo zip Windows è **piatto**: dopo l'estrazione trovi `DUPLO.exe` e le `.dll` ne
 
 ## Linux
 
-1. Scarica `DUPLO-1.1.4-linux-x64.zip`.
+1. Scarica `DUPLO-1.0.0-linux-x64.zip`.
 2. Estrai e avvia `./DUPLO` (`chmod +x DUPLO` se serve).
 
 Linux 32-bit non è disponibile (Electron 33 non pubblica più un runtime ia32).

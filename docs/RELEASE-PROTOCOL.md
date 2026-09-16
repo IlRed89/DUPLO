@@ -1,6 +1,6 @@
 # Protocollo permanente: Docs, Git e GitHub Releases
 
-Ogni modifica, bugfix o chiusura issue di **DUPLO** non è completa senza le quattro sezioni seguenti. Identità prodotto: **DUPLO**.
+Ogni modifica, bugfix o chiusura issue di **DUPLO** non è completa senza le quattro sezioni seguenti. Identità prodotto: **DUPLO**. Release stabile corrente: **v1.0.0**.
 
 ## 1. Documentazione (Docs-as-Code)
 
@@ -23,14 +23,14 @@ npm run build -- --win zip --ia32
 
 | Comando | File in `dist/` | Unpacked |
 | --- | --- | --- |
-| `--win zip --x64` | `dist/DUPLO-<version>-win-x64.zip` | `dist/win-unpacked/` |
-| `--win zip --ia32` | `dist/DUPLO-<version>-win-ia32.zip` | `dist/win-ia32-unpacked/` |
+| `--win zip --x64` | `dist/DUPLO-1.0.0-win-x64.zip` | `dist/win-unpacked/` |
+| `--win zip --ia32` | `dist/DUPLO-1.0.0-win-ia32.zip` | `dist/win-ia32-unpacked/` |
 
-Nomi sulla GitHub Release (pipeline overlay, non sovrascrivere `v1.0.0`):
+Nomi sulla GitHub Release `v1.0.0`:
 
-- `DUPLO-1.1.4-win.zip`
-- `DUPLO-1.1.4-ia32-win.zip`
-- `DUPLO-1.1.4-linux-x64.zip`
+- `DUPLO-1.0.0-win-x64.zip`
+- `DUPLO-1.0.0-win-ia32.zip`
+- `DUPLO-1.0.0-linux-x64.zip`
 - `SHA256SUMS.txt`
 
 ## 3. Git e tagging
@@ -44,17 +44,17 @@ git push origin main
 git push origin vX.Y.Z
 ```
 
-Esempio 1.1.4:
+Esempio 1.0.0:
 
 ```bash
 git status
 git add .
-git commit -m "chore(branding): allinea identità prodotto a DUPLO 1.1.4"
-git tag -a v1.1.4 -m "Release v1.1.4: identità prodotto DUPLO su ogni file"
+git commit -m "chore(release): consolida DUPLO 1.0.0 stabile"
+git tag -a v1.0.0 -m "Release v1.0.0: prima versione stabile DUPLO"
 git push origin main
-git push origin v1.1.4
+git push origin v1.0.0
 ```
 
 ## 4. GitHub Release
 
-Chiudere il ciclo con `https://github.com/IlRed89/DUPLO/releases/tag/vX.Y.Z` e zip scaricabili. Un push su `package.json` / `README.md` / `CHANGELOG.md` / `src/**` avvia `rebrand-asar-release.yml` (`DEST_TAG=v$(version)`).
+Chiudere il ciclo con `https://github.com/IlRed89/DUPLO/releases/tag/v1.0.0` e zip scaricabili. Un push su `package.json` / `README.md` / `CHANGELOG.md` / `src/**` avvia `rebrand-asar-release.yml` (`DEST_TAG=v$(version)`).
