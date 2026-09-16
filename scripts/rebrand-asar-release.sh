@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Sovrascrive app.asar negli zip unpacked con il sorgente corrente e pubblica
-# una NUOVA GitHub Release (tag = v$(package.json version)).
-# I runtime Electron si scaricano dalla release base (default v1.0.0).
+# la GitHub Release tag = v$(package.json version).
+# I runtime Electron si scaricano dalla release sorgente più recente disponibile
+# (v1.1.x oppure v1.0.0). Con HOUSEKEEPING=1 elimina i tag 1.1.x e ricrea v1.0.0.
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-IlRed89/DUPLO}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PKG_VER="$(node -p "require('${ROOT}/package.json').version")"
 DEST_TAG="${DEST_TAG:-v${PKG_VER}}"
-SOURCE_TAG="${SOURCE_TAG:-v1.0.0}"
+SOURCE_TAG="${SOURCE_TAG:-auto}"
 WORKDIR="$(mktemp -d)"
 TOOLS=""
 ASAR_BIN=""
@@ -172,7 +173,10 @@ rebrand_zip() {
   mkdir -p "$WORKDIR/out" "$WORKDIR/zips/$asset" "$WORKDIR/dl"
   echo "== download $asset =="
   rm -f "$WORKDIR/dl/$asset"
-  gh release download "$SOURCE_TAG" --repo "$REPO" --pattern "$asset" --dir "$WORKDIR/dl"
+  if ! gh release download "$SOURCE_TAG" --repo "$REPO" --pattern "$asset" --dir "$WORKDIR/dl"; then
+    echo "Asset $asset assente su $SOURCE_TAG, provo nomi legacy" >&2
+    return 1
+  fi
   python3 - "$WORKDIR/dl/$asset" "$WORKDIR/zips/$asset" <<'PY'
 import sys, zipfile
 from pathlib import Path
@@ -218,10 +222,82 @@ PY
 }
 
 mkdir -p "$WORKDIR/dl"
+
+resolve_source_tag() {
+  if [[ -n "${SOURCE_TAG:-}" && "${SOURCE_TAG}" != "auto" ]]; then
+    echo "[rebrand] SOURCE_TAG forzato: $SOURCE_TAG"
+    return 0
+  fi
+  local candidate
+  for candidate in v1.1.4 v1.1.3 v1.1.2 v1.1.1 v1.1.0 v1.0.0; do
+    if gh release view "$candidate" --repo "$REPO" >/dev/null 2>&1; then
+      SOURCE_TAG="$candidate"
+      echo "[rebrand] SOURCE_TAG automatico: $SOURCE_TAG"
+      return 0
+    fi
+  done
+  echo "ERRORE: nessuna GitHub Release sorgente con zip Electron" >&2
+  exit 1
+}
+
+delete_release_and_tag() {
+  local tag="$1"
+  echo "[housekeeping] Elimino release/tag $tag"
+  gh release delete "$tag" --repo "$REPO" -y --cleanup-tag 2>/dev/null || \
+    gh release delete "$tag" --repo "$REPO" -y 2>/dev/null || true
+  gh api -X DELETE "/repos/${REPO}/git/refs/tags/${tag}" >/dev/null 2>&1 || true
+}
+
+housekeeping_delete_obsolete() {
+  local tag
+  echo "[housekeeping] Elimino le release intermedie; DEST ${DEST_TAG} verrà ricreata"
+  for tag in v1.1.0 v1.1.1 v1.1.2 v1.1.3 v1.1.4; do
+    if [[ "$tag" == "$DEST_TAG" ]]; then
+      continue
+    fi
+    delete_release_and_tag "$tag"
+  done
+  if [[ "${RECREATE_DEST:-1}" == "1" ]]; then
+    delete_release_and_tag "$DEST_TAG"
+  fi
+}
+
+try_rebrand_zip() {
+  local dest_name="$1"
+  shift
+  local pattern
+  for pattern in "$@"; do
+    echo "[rebrand] provo source asset $pattern"
+    if rebrand_zip "$pattern" "$dest_name"; then
+      return 0
+    fi
+    echo "[rebrand] $pattern non disponibile su $SOURCE_TAG"
+  done
+  echo "ERRORE: nessun asset sorgente per $dest_name" >&2
+  exit 1
+}
+
+resolve_source_tag
+SRC_VER="${SOURCE_TAG#v}"
 echo "== overlay asar: source ${SOURCE_TAG} -> release ${DEST_TAG} (v${PKG_VER}) =="
-rebrand_zip "DUPLO-1.0.0-win.zip" "DUPLO-${PKG_VER}-win.zip"
-rebrand_zip "DUPLO-1.0.0-ia32-win.zip" "DUPLO-${PKG_VER}-ia32-win.zip"
-rebrand_zip "DUPLO-linux-x64.zip" "DUPLO-${PKG_VER}-linux-x64.zip"
+
+try_rebrand_zip "DUPLO-${PKG_VER}-win-x64.zip" \
+  "DUPLO-${SRC_VER}-win-x64.zip" \
+  "DUPLO-${SRC_VER}-win.zip" \
+  "DUPLO-1.0.0-win.zip" \
+  "DUPLO-1.0.0-win-x64.zip"
+
+try_rebrand_zip "DUPLO-${PKG_VER}-win-ia32.zip" \
+  "DUPLO-${SRC_VER}-win-ia32.zip" \
+  "DUPLO-${SRC_VER}-ia32-win.zip" \
+  "DUPLO-1.0.0-ia32-win.zip" \
+  "DUPLO-1.0.0-win-ia32.zip"
+
+try_rebrand_zip "DUPLO-${PKG_VER}-linux-x64.zip" \
+  "DUPLO-${SRC_VER}-linux-x64.zip" \
+  "DUPLO-linux-x64.zip" \
+  "DUPLO-1.0.0-linux-x64.zip"
+
 
 python3 - "$WORKDIR/out" <<'PY'
 import sys, zipfile
@@ -237,13 +313,28 @@ PY
 
 (
   cd "$WORKDIR/out"
-  sha256sum "DUPLO-${PKG_VER}-win.zip" "DUPLO-${PKG_VER}-ia32-win.zip" "DUPLO-${PKG_VER}-linux-x64.zip" > SHA256SUMS.txt
+  sha256sum "DUPLO-${PKG_VER}-win-x64.zip" "DUPLO-${PKG_VER}-win-ia32.zip" "DUPLO-${PKG_VER}-linux-x64.zip" > SHA256SUMS.txt
   cat SHA256SUMS.txt
 )
 
 NOTES="${ROOT}/docs/RELEASE-v${PKG_VER}.md"
 if [[ ! -f "$NOTES" ]]; then
   NOTES="${ROOT}/CHANGELOG.md"
+fi
+
+if [[ "${HOUSEKEEPING:-1}" == "1" ]]; then
+  housekeeping_delete_obsolete
+fi
+
+TARGET_COMMIT="${GITHUB_SHA:-}"
+CREATE_ARGS=(
+  "$DEST_TAG"
+  --repo "$REPO"
+  --title "DUPLO ${DEST_TAG}"
+  --notes-file "$NOTES"
+)
+if [[ -n "$TARGET_COMMIT" ]]; then
+  CREATE_ARGS+=(--target "$TARGET_COMMIT")
 fi
 
 if gh release view "$DEST_TAG" --repo "$REPO" >/dev/null 2>&1; then
@@ -256,12 +347,12 @@ if gh release view "$DEST_TAG" --repo "$REPO" >/dev/null 2>&1; then
   done <<< "$existing"
 else
   echo "Creo release $DEST_TAG"
-  gh release create "$DEST_TAG" --repo "$REPO" --title "DUPLO ${DEST_TAG}" --notes-file "$NOTES"
+  gh release create "${CREATE_ARGS[@]}"
 fi
 
 gh release upload "$DEST_TAG" \
-  "$WORKDIR/out/DUPLO-${PKG_VER}-win.zip" \
-  "$WORKDIR/out/DUPLO-${PKG_VER}-ia32-win.zip" \
+  "$WORKDIR/out/DUPLO-${PKG_VER}-win-x64.zip" \
+  "$WORKDIR/out/DUPLO-${PKG_VER}-win-ia32.zip" \
   "$WORKDIR/out/DUPLO-${PKG_VER}-linux-x64.zip" \
   "$WORKDIR/out/SHA256SUMS.txt" \
   "$ROOT/README.md" \
