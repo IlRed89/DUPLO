@@ -1,0 +1,49 @@
+name: Restore package-lock DUPLO 1.1.4
+
+on:
+  push:
+    paths:
+      - ".github/workflows/restore-package-lock.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: restore-package-lock
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Assemble package-lock.json from git history
+        run: |
+          set -euo pipefail
+          git show 4f9ee84dec551cc4e142832fa521a2d065a5ef7f:package-lock.json > package-lock.json
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p = Path("package-lock.json")
+          data = p.read_bytes()
+          text = data.decode("utf-8")
+          text = text.replace('"version": "1.0.0"', '"version": "1.1.4"', 2)
+          out = text.encode("utf-8")
+          if len(out) != 211031:
+              raise SystemExit(f"size {len(out)}")
+          blob = hashlib.sha1(b"blob %d\0" % len(out) + out).hexdigest()
+          if blob != "c10b482f9a05f73cc8d7bffbbfc2adfc0d5a6e5c":
+              raise SystemExit(f"blob {blob}")
+          p.write_bytes(out)
+          print("ok", len(out), blob)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/restore-package-lock.yml
+          git add package-lock.json .github/workflows/restore-package-lock.yml
+          git status
+          git commit -m "fix: ripristina file completo DUPLO 1.1.4"
+          git push
