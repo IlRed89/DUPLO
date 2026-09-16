@@ -1,20 +1,28 @@
 #!/usr/bin/env bash
 # Sovrascrive app.asar negli zip della release v1.0.0 con il sorgente DUPLO
-# (titolo finestra, h1, menu, logger). Poi ritimbra ProductName sull'exe.
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-IlRed89/DUPLO}"
 TAG="v1.0.0"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKDIR="$(mktemp -d)"
+TOOLS=""
 ASAR_BIN=""
-trap 'rm -rf "$WORKDIR"' EXIT
+trap 'rm -rf "$WORKDIR" ${TOOLS:+"$TOOLS"}' EXIT
 
 cd "$ROOT"
 
-echo "== install @electron/asar + resedit =="
-npm install --no-save --no-package-lock @electron/asar resedit
-ASAR_BIN="$(node -p "require.resolve('@electron/asar/bin/asar.js')")"
+echo "== tool isolati (niente electron dal package.json) =="
+TOOLS="$(mktemp -d)"
+npm install --prefix "$TOOLS" --no-fund --no-audit @electron/asar resedit
+ASAR_BIN="$TOOLS/node_modules/@electron/asar/bin/asar.js"
+if [[ ! -f "$ASAR_BIN" ]]; then
+  echo "asar.js non trovato in $TOOLS" >&2
+  find "$TOOLS" -name 'asar*' | head >&2
+  exit 1
+fi
+export NODE_PATH="$TOOLS/node_modules${NODE_PATH:+:$NODE_PATH}"
+echo "ASAR_BIN=$ASAR_BIN"
 
 stamp_exe() {
   local exe="$1"
@@ -139,7 +147,7 @@ PY
   fi
   overlay_asar "$asar"
 
-  find "$WORKDIR/zips/$asset" -iname '*dupfinder*' -print
+  find "$WORKDIR/zips/$asset" -iname '*dupfinder*' -print || true
   find "$WORKDIR/zips/$asset" \( -iname 'DUPLO.exe' -o -iname 'DupFinder.exe' \) -print | while read -r exe; do
     dir="$(dirname "$exe")"
     if [[ "$(basename "$exe")" != "DUPLO.exe" ]]; then
