@@ -28,3 +28,15 @@ function packagedReadmeOptions() {
     packaged: app.isPackaged
   };
 }
+
+/**
+ * Riferimento globale alla finestra principale per evitare che venga chiusa dal garbage collector.
+ * @type {BrowserWindow|null}
+ */
+let mainWindow = null;
+
+/**
+ * Riferimento al token di cancellazione della scansione corrente.
+ * @type {ScanCancellationToken|null}
+ */
+let activeCancellationToken = null;
