@@ -1,41 +1,54 @@
 /**
  * @file preload.js
- * @description Script di preload per Electron.
- * Utilizza contextBridge per esporre in modo sicuro un'API circoscritta (window.duploAPI)
- * al Renderer Process (interfaccia utente), mantenendo abilitato contextIsolation
- * e bloccando l'accesso diretto ai moduli nativi di Node.js.
+ * @description Ponte sicuro tra Main Process e Renderer (`contextIsolation: true`).
+ *
+ * Espone `window.duploAPI` (API completa) e l'alias `window.api` richiesto
+ * dal contratto drag & drop (`getPathForFile`, `consumeDroppedPaths`,
+ * `validateAndAddFolder`).
+ *
+ * Perché i path si catturano QUI e non nel Renderer:
+ * `contextBridge` clona gli argomenti. Un `File` HTML5 clonato perde il
+ * riferimento nativo e `webUtils.getPathForFile` restituisce `''`.
+ * Il listener `drop` in capture sul mondo isolato vede il `File` vero.
  */
+
+'use strict';
 
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 /**
  * Path catturati nel mondo isolato del preload (File nativo, non clonato).
- * `contextBridge` clona gli argomenti: passare `File` dal Renderer a
- * `getPathForFile` può restituire stringa vuota. Per questo il drop viene
- * intercettato QUI, su `window`, prima che l'oggetto attraversi il ponte.
+ * Il Renderer li legge con `consumeDroppedPaths` e lo stash si svuota.
  * @type {string[]}
  */
 let lastNativeDropPaths = [];
 
 /**
- * Percorso filesystem di un `File` HTML5. Da Electron 32+ `file.path` è
- * vuoto con `contextIsolation`: serve `webUtils.getPathForFile(file)`.
+ * Percorso filesystem di un `File` HTML5.
+ * Da Electron 32+ `file.path` è vuoto con `contextIsolation`: serve
+ * `webUtils.getPathForFile(file)` sul riferimento vivo.
  *
- * @param {File} file File del DataTransfer (riferimento vivo).
- * @returns {string} Percorso assoluto, oppure ''.
+ * @param {File|null|undefined} file File del DataTransfer.
+ * @returns {string} Percorso assoluto, oppure `''`.
  */
 function getPathForFileSafe(file) {
-  if (!file) return '';
+  if (!file) {
+    return '';
+  }
   try {
     if (webUtils && typeof webUtils.getPathForFile === 'function') {
       const nativePath = webUtils.getPathForFile(file);
-      if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
+      if (typeof nativePath === 'string' && nativePath.length > 0) {
+        return nativePath;
+      }
     }
   } catch (_err) {
     /* File clonato o webUtils assente */
   }
   try {
-    if (typeof file.path === 'string' && file.path.length > 0) return file.path;
+    if (typeof file.path === 'string' && file.path.length > 0) {
+      return file.path;
+    }
   } catch (_err) {
     /* getter path bloccato */
   }
@@ -53,10 +66,18 @@ function extractPathsFromDataTransfer(dataTransfer) {
   const paths = [];
   const seen = new Set();
 
+  /**
+   * @param {File|null} file
+   * @returns {void}
+   */
   function pushFile(file) {
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     const nativePath = getPathForFileSafe(file);
-    if (!nativePath || seen.has(nativePath)) return;
+    if (!nativePath || seen.has(nativePath)) {
+      return;
+    }
     seen.add(nativePath);
     paths.push(nativePath);
   }
@@ -64,9 +85,13 @@ function extractPathsFromDataTransfer(dataTransfer) {
   try {
     const files = dataTransfer && dataTransfer.files ? dataTransfer.files : null;
     if (files && files.length) {
-      for (let i = 0; i < files.length; i += 1) pushFile(files[i]);
+      for (let i = 0; i < files.length; i += 1) {
+        pushFile(files[i]);
+      }
     }
-  } catch (_err) { /* FileList illeggibile */ }
+  } catch (_err) {
+    /* FileList illeggibile */
+  }
 
   try {
     const items = dataTransfer && dataTransfer.items ? dataTransfer.items : null;
@@ -78,32 +103,55 @@ function extractPathsFromDataTransfer(dataTransfer) {
         }
       }
     }
-  } catch (_err) { /* items illeggibile */ }
+  } catch (_err) {
+    /* items illeggibile */
+  }
 
   return paths;
 }
 
+/**
+ * Invia un log al Main senza attendere ack (canale `log:renderer`).
+ *
+ * @param {string} level
+ * @param {string} message
+ * @returns {void}
+ */
 function logPreloadDrop(level, message) {
   try {
     ipcRenderer.send('log:renderer', { level: level || 'info', message: String(message) });
-  } catch (_err) { /* logger non pronto */ }
+  } catch (_err) {
+    /* logger non pronto */
+  }
 }
 
 /**
- * Intercetta dragover/drop nel mondo isolato: preventDefault (senza
- * stopPropagation sul dragover: in Chromium bloccherebbe il drop) e
- * cattura i path con webUtils sul File nativo.
+ * Intercetta dragover/drop nel mondo isolato.
+ * `preventDefault` senza `stopPropagation` sul dragover: in Chromium
+ * `stopPropagation` sul dragover impedisce all'evento `drop` di sparare.
+ *
+ * @returns {void}
  */
 function armIsolatedWorldDropCapture() {
   const opts = { capture: true };
 
+  /**
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function allowDrop(event) {
     try {
       event.preventDefault();
       if (event.dataTransfer) {
-        try { event.dataTransfer.dropEffect = 'copy'; } catch (_err) { /* ignore */ }
+        try {
+          event.dataTransfer.dropEffect = 'copy';
+        } catch (_err) {
+          /* ignore */
+        }
       }
-    } catch (_err) { /* ignore */ }
+    } catch (_err) {
+      /* ignore */
+    }
   }
 
   window.addEventListener('dragenter', allowDrop, opts);
@@ -123,176 +171,182 @@ function armIsolatedWorldDropCapture() {
 armIsolatedWorldDropCapture();
 
 /**
- * Espone in modo sicuro i metodi e gli eventi IPC all'oggetto globale 'window.duploAPI'.
+ * Restituisce e svuota lo stash dei path nativi catturati al drop.
+ *
+ * @returns {string[]}
  */
+function consumeDroppedPaths() {
+  const copy = lastNativeDropPaths.slice();
+  lastNativeDropPaths = [];
+  return copy;
+}
+
+/**
+ * Path nativo di un File. Stesso helper usato da `duploAPI` e `api`.
+ *
+ * @param {File} file
+ * @returns {string}
+ */
+function getPathForFileBridge(file) {
+  try {
+    if (webUtils && typeof webUtils.getPathForFile === 'function') {
+      const nativePath = webUtils.getPathForFile(file);
+      if (typeof nativePath === 'string' && nativePath.length > 0) {
+        return nativePath;
+      }
+    }
+  } catch (_err) {
+    /* File clonato dal contextBridge */
+  }
+  return getPathForFileSafe(file);
+}
+
+/**
+ * Sottoscrive un canale Main→Renderer e restituisce l'unsubscribe.
+ * Il Renderer deve chiamare l'unsubscribe al teardown (qui: una volta a boot).
+ *
+ * @param {string} channel
+ * @param {function(...unknown): void} callback
+ * @returns {function(): void}
+ */
+function subscribeChannel(channel, callback) {
+  const subscription = (_event, ...args) => callback(...args);
+  ipcRenderer.on(channel, subscription);
+  return () => {
+    ipcRenderer.removeListener(channel, subscription);
+  };
+}
+
 contextBridge.exposeInMainWorld('duploAPI', {
   /**
-   * Apre la finestra di dialogo nativa del sistema operativo per selezionare una cartella.
-   * @returns {Promise<string|null>} Percorso della cartella selezionata o null se annullato
+   * Dialog nativo "Seleziona cartella".
+   * @returns {Promise<string|null>}
    */
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
 
   /**
    * Percorso nativo di un File droppato (`webUtils.getPathForFile`).
-   * Da chiamare nel Renderer come `window.duploAPI.getPathForFile(file)`
-   * (alias richiesto: `window.api.getPathForFile`).
    * @param {File} file
    * @returns {string}
    */
-  getPathForFile: (file) => {
-    try {
-      if (webUtils && typeof webUtils.getPathForFile === 'function') {
-        const nativePath = webUtils.getPathForFile(file);
-        if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
-      }
-    } catch (_err) { /* File clonato dal contextBridge */ }
-    return getPathForFileSafe(file);
-  },
+  getPathForFile: (file) => getPathForFileBridge(file),
 
   /**
-   * Path catturati dal listener `drop` del preload (File nativo).
-   * Il Renderer li legge al drop e svuota lo stash.
+   * Path catturati dal listener `drop` del preload. Svuota lo stash.
    * @returns {string[]}
    */
-  consumeDroppedPaths: () => {
-    const copy = lastNativeDropPaths.slice();
-    lastNativeDropPaths = [];
-    return copy;
-  },
+  consumeDroppedPaths,
 
   /**
-   * Verifica un singolo path droppato nel Main (`fs.promises.stat` + `isDirectory`).
+   * Verifica un singolo path droppato nel Main (`stat` + `isDirectory`).
    * @param {string} folderPath
    * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>}
    */
   validateAndAddFolder: (folderPath) => ipcRenderer.invoke('validate-and-add-folder', folderPath),
 
   /**
-   * Verifica quali path droppati sono cartelle (stat nel Main Process).
+   * Verifica in batch quali path droppati sono cartelle.
    * @param {string[]} paths
    * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>}
    */
   filterDirectories: (paths) => ipcRenderer.invoke('fs:filter-directories', paths),
 
   /**
-   * Avvia la scansione dei duplicati con i percorsi e i criteri specificati.
-   * @param {Object} payload - { directories: string[], criteria: Object }
-   * @returns {Promise<Array<Object>>} Risultati dei gruppi duplicati
+   * Avvia la scansione dei duplicati.
+   * @param {{ directories: string[], criteria: Object }} payload
+   * @returns {Promise<Array<Object>>}
    */
   startScan: (payload) => ipcRenderer.invoke('scan:start', payload),
 
   /**
-   * Richiede l'interruzione immediata della scansione in corso.
+   * Interrompe la scansione in corso.
    * @returns {Promise<boolean>}
    */
   cancelScan: () => ipcRenderer.invoke('scan:cancel'),
 
   /**
-   * Elimina un file duplicato dal disco.
-   * @param {string} filePath - Percorso assoluto del file da eliminare
+   * Elimina un file dal disco (`unlink`).
+   * @param {string} filePath
    * @returns {Promise<{success: boolean, error?: string}>}
    */
   deleteFile: (filePath) => ipcRenderer.invoke('file:delete', filePath),
 
   /**
-   * Sposta un file in una cartella di destinazione.
-   * @param {string} sourcePath - Percorso del file da spostare
-   * @param {string} destFolder - Cartella dove collocare il file
-   * @returns {Promise<{success: boolean, error?: string}>}
-   */
-  moveFile: (sourcePath, destFolder) => ipcRenderer.invoke('file:move', { sourcePath, destFolder }),
-
-  /**
-   * Apre la cartella contenitore del file nel gestore file nativo del sistema (Explorer, Finder, Nautilus).
-   * @param {string} filePath - Percorso del file da evidenziare
+   * Apre la cartella contenitore nel file manager nativo.
+   * @param {string} filePath
    * @returns {Promise<boolean>}
    */
   showItemInFolder: (filePath) => ipcRenderer.invoke('shell:show-item', filePath),
 
   /**
-   * Rinomina un file sul disco (stessa cartella). Il Renderer aggiorna il DOM col newPath.
-   * @param {string} oldPath - Percorso assoluto attuale
-   * @param {string} newName - Nuovo nome file (basename; senza slash)
+   * Rinomina un file nella stessa cartella.
+   * @param {string} oldPath
+   * @param {string} newName
    * @returns {Promise<{success: boolean, oldPath?: string, newPath?: string, error?: string, code?: string}>}
    */
   renameFile: (oldPath, newName) => ipcRenderer.invoke('rename-file', { oldPath, newName }),
 
   /**
-   * Apre la cartella del file nel file manager nativo (`shell.showItemInFolder`).
-   * @param {string} filePath
-   * @returns {Promise<{success: boolean, path?: string, error?: string}>}
-   */
-  openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
-
-  /**
-   * Imposta il tema delle finestre native Electron: 'dark' | 'light' | 'system'.
+   * Imposta il tema nativo Electron: `dark` | `light` | `system`.
    * @param {'dark'|'light'|'system'} source
    * @returns {Promise<{success: boolean, themeSource?: string, shouldUseDarkColors?: boolean, error?: string}>}
    */
   setNativeTheme: (source) => ipcRenderer.invoke('set-native-theme', source),
 
   /**
-   * Esporta il report dei risultati in JSON o CSV tramite dialogo di salvataggio.
-   * @param {string} format - 'json' | 'csv'
-   * @param {Array<Object>} groups - I gruppi di duplicati da esportare
+   * Esporta il report in JSON o CSV.
+   * @param {string} format
+   * @param {Array<Object>} groups
    * @returns {Promise<{success: boolean, canceled?: boolean, path?: string, error?: string}>}
    */
   exportReport: (format, groups) => ipcRenderer.invoke('report:export', { format, groups }),
 
   /**
-   * Restituisce il percorso fisico del file di log per agevolare il supporto e il debug.
+   * Percorso del file di log persistente.
    * @returns {Promise<string>}
    */
   getLogPath: () => ipcRenderer.invoke('app:get-log-path'),
 
   /**
-   * Carica il manuale README.md incluso nell'applicazione.
+   * Carica il manuale README.md.
    * @returns {Promise<{success: boolean, path?: string, content?: string, error?: string}>}
    */
   getReadme: () => ipcRenderer.invoke('app:get-readme'),
 
   /**
-   * Apre il file README.md con il visualizzatore di testo del sistema.
+   * Apre README.md con il visualizzatore di sistema.
    * @returns {Promise<{success: boolean, path?: string, error?: string}>}
    */
   openReadme: () => ipcRenderer.invoke('app:open-readme'),
 
   /**
-   * Invia un messaggio di log dal Renderer al Main Process per memorizzarlo nel file di log.
-   * @param {string} level - 'info' | 'warn' | 'error' | 'debug'
-   * @param {string} message - Testo del log
+   * Log persistente (fire-and-forget).
+   * @param {string} level
+   * @param {string} message
+   * @returns {void}
    */
   logRendererEvent: (level, message) => ipcRenderer.send('log:renderer', { level, message }),
 
   /**
-   * Chiede al Main Process di ricostruire la barra dei menu nativa nella lingua indicata.
-   * @param {string} lang - 'it' | 'en' (altri valori: fallback italiano)
+   * Ricostruisce il menu nativo nella lingua indicata (`invoke`, attende l'esito).
+   * @param {string} lang `it` | `en`
+   * @returns {Promise<{success: boolean, language?: string, error?: string}>}
    */
-  setLanguage: (lang) => ipcRenderer.send('language-changed', lang),
+  setLanguage: (lang) => ipcRenderer.invoke('language-changed', lang),
 
   /**
-   * Sottoscrizione alla voce nativa Aiuto → Guida (F1).
+   * Voce nativa Aiuto → Guida (F1). Restituisce l'unsubscribe.
    * @param {function(): void} callback
    * @returns {function(): void}
    */
-  onOpenGuideFromMenu: (callback) => {
-    const subscription = () => callback();
-    ipcRenderer.on('menu:open-guide', subscription);
-    return () => ipcRenderer.removeListener('menu:open-guide', subscription);
-  },
+  onOpenGuideFromMenu: (callback) => subscribeChannel('menu:open-guide', () => callback()),
 
   /**
-   * Sottoscrizione agli aggiornamenti di progresso in tempo reale inviati dal Main Process.
-   * @param {function(Object): void} callback - Funzione chiamata ad ogni avanzamento
-   * @returns {function(): void} Funzione per rimuovere il listener
+   * Progresso scansione in tempo reale. Restituisce l'unsubscribe.
+   * @param {function(Object): void} callback
+   * @returns {function(): void}
    */
-  onScanProgress: (callback) => {
-    const subscription = (_event, data) => callback(data);
-    ipcRenderer.on('scan:progress', subscription);
-    return () => {
-      ipcRenderer.removeListener('scan:progress', subscription);
-    };
-  }
+  onScanProgress: (callback) => subscribeChannel('scan:progress', (data) => callback(data))
 });
 
 /**
@@ -300,19 +354,7 @@ contextBridge.exposeInMainWorld('duploAPI', {
  * Stesso helper di `window.duploAPI` (un solo ponte, due nomi).
  */
 contextBridge.exposeInMainWorld('api', {
-  getPathForFile: (file) => {
-    try {
-      if (webUtils && typeof webUtils.getPathForFile === 'function') {
-        const nativePath = webUtils.getPathForFile(file);
-        if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
-      }
-    } catch (_err) { /* File clonato */ }
-    return getPathForFileSafe(file);
-  },
-  consumeDroppedPaths: () => {
-    const copy = lastNativeDropPaths.slice();
-    lastNativeDropPaths = [];
-    return copy;
-  },
+  getPathForFile: (file) => getPathForFileBridge(file),
+  consumeDroppedPaths,
   validateAndAddFolder: (folderPath) => ipcRenderer.invoke('validate-and-add-folder', folderPath)
 });
