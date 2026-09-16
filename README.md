@@ -1,6 +1,8 @@
 # DUPLO — Manuale d'uso
 
-**Versione 1.0.0** · Windows, macOS e Linux · applicazione desktop Electron (cartella unpacked)
+**Versione 1.1.0** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
+
+Changelog: [CHANGELOG.md](CHANGELOG.md) · Release: [github.com/IlRed89/DUPLO/releases](https://github.com/IlRed89/DUPLO/releases)
 
 DUPLO trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano i criteri che hai selezionato.
 
@@ -26,14 +28,25 @@ Indice:
 
 DUPLO **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DUPLO.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DUPLO-1.0.0-win.zip` (64-bit) o `DUPLO-1.0.0-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
+1. Scarica `DUPLO-1.1.0-win.zip` (64-bit) o `DUPLO-1.1.0-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows SmartScreen**, leggi il riquadro [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice) qui sotto.
 
 Lo zip Windows è **piatto**: dopo l’estrazione trovi `DUPLO.exe` e le `.dll` **nella stessa cartella**, senza una sottocartella padre. Non spostare solo l’exe.
 
-Su Linux scarica `DUPLO-linux-x64.zip`, estrai e avvia `./DUPLO` (`chmod +x DUPLO` se serve). Su macOS la cartella unpacked va compilata su un Mac (`npm run dist:mac`): dentro trovi `DUPLO.app`.
+### Tabella di compatibilità
+
+| Piattaforma | Architettura | Artefatto della release | Supporto |
+|---|---|---|---|
+| Windows 10 / 11 | **x64 (64-bit)** | `DUPLO-1.1.0-win.zip` | Sì |
+| Windows 10 / 11 | **x86 (32-bit / ia32)** | `DUPLO-1.1.0-ia32-win.zip` | Sì |
+| Windows ARM64 | arm64 | — | Non in questa release |
+| Linux | x64 | `DUPLO-1.1.0-linux-x64.zip` | Sì |
+| Linux | x86 32-bit | — | No (Electron 33 non pubblica runtime ia32) |
+| macOS | — | build locale `npm run dist:mac` | Solo compilazione su Mac |
+
+Su Linux scarica lo zip, estrai e avvia `./DUPLO` (`chmod +x DUPLO` se serve). Su macOS la cartella unpacked va compilata su un Mac: dentro trovi `DUPLO.app`.
 
 ---
 
@@ -79,7 +92,7 @@ L’eseguibile prende l’icona da **`build/icon.ico`** (`build.win.icon` in `pa
 
 ## Flusso consigliato (prima volta)
 
-1. Aggiungi le cartelle da analizzare (Foto, Download, Documenti…): **Aggiungi Cartella** oppure **trascinale** da Esplora file / Finder sull'elenco a sinistra. Puoi aggiungerne più di una: DUPLO confronta anche i file che stanno in cartelle diverse. I singoli file trascinati vengono ignorati.
+1. Aggiungi le cartelle da analizzare (Foto, Download, Documenti…): **Aggiungi Cartella** oppure **trascinale ovunque nella finestra** da Esplora file / Finder. Compare un overlay a tutto schermo («Trascina qui le cartelle»). Puoi aggiungerne più di una: DUPLO confronta anche i file che stanno in cartelle diverse. I singoli file trascinati vengono ignorati.
 2. Lascia attivi **Stessa Dimensione** e **Hash Contenuto (2-Step)**. Così trovi copie identiche anche se i nomi sono diversi (`foto.jpg` e `copia di foto.jpg`).
 3. Clicca **Avvia Scansione** e attendi la barra di avanzamento.
 4. Leggi i gruppi: la riga verde **Originale** è quella che verrà conservata; le righe rosse **Duplicato** sono le copie in più.
@@ -104,7 +117,7 @@ Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premut
 ### Cartelle da analizzare
 
 - **Aggiungi Cartella** apre la finestra nativa del sistema (Esplora file / Finder).
-- **Trascina** una o più cartelle sull'elenco tratteggiato. DUPLO verifica ogni path con `fs.statSync`: accetta solo directory, logga e scarta file o percorsi illeggibili.
+- **Trascina** una o più cartelle **ovunque nella finestra** (non solo sul rettangolo dell'elenco). DUPLO verifica ogni path nel Main Process con `fs.statSync`: accetta solo directory, logga e scarta file o percorsi illeggibili. Su `dragenter`/`dragover` chiama sempre `preventDefault` così Electron non naviga via.
 - Ogni cartella compare nell'elenco: puoi toglierne una sola o **Rimuovi Tutte**.
 - DUPLO scende in tutte le sottocartelle.
 - I collegamenti simbolici non vengono seguiti, per evitare di contare due volte lo stesso file o di entrare in cicli.
@@ -346,7 +359,7 @@ npm start
 | `npm start` | App in sviluppo |
 | `npm test` | Test hasher, scanner, fuzzy, ZIP piatto, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.0.0-win.zip`, `DUPLO-1.0.0-ia32-win.zip`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.1.0-win.zip`, `DUPLO-1.1.0-ia32-win.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
@@ -358,6 +371,22 @@ Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`archiver`, ho
 Runtime: solo `electron-log`. `electron` / `electron-builder` / `archiver` / `resedit` / `png2icons` sono `devDependencies`. Nessun binario FFmpeg nel pacchetto.
 
 La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`). L’icona viene comunque applicata da `applyWinIcon.js`. Per firmare vedi [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
+
+---
+
+## Lifecycle & Release Policy
+
+Ogni modifica, funzione o bugfix **non è completa** senza:
+
+1. **Docs-as-Code:** aggiornare questo README e [CHANGELOG.md](CHANGELOG.md) (Keep a Changelog: Added / Changed / Fixed / Removed). JSDoc + log su ogni canale IPC o metodo nuovo.
+2. **Nuova GitHub Release:** bump di versione in `package.json`, tag `vX.Y.Z`, zip scaricabili (win x64, win ia32, linux x64) così si può provare subito senza compilare.
+
+```bash
+git status
+git add .
+git commit -m "feat(scope): messaggio in Conventional Commits"
+git push origin main
+```
 
 ---
 
