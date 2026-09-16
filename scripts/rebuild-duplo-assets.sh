@@ -11,12 +11,23 @@ if [[ -f package-lock.json ]]; then
   sed -i 's/"name": "dupfinder"/"name": "duplo"/g' package-lock.json
 fi
 
-npm ci
-npm test
+echo "== npm ci =="
+if ! npm ci; then
+  echo "npm ci fallito, provo npm install"
+  npm install
+fi
+
+echo "== test =="
+mapfile -t tests < <(find src -name '*.test.js' | sort)
+echo "Test: ${tests[*]}"
+node --test "${tests[@]}"
+
+echo "== electron-builder --win --linux =="
 npx electron-builder --win --linux
 
 DIST="${ROOT}/dist"
 mkdir -p "$DIST"
+ls -la "$DIST" || true
 
 linux_unpacked=""
 for candidate in "${DIST}/linux-unpacked" "${DIST}/linux-x64-unpacked"; do
@@ -27,7 +38,7 @@ for candidate in "${DIST}/linux-unpacked" "${DIST}/linux-x64-unpacked"; do
 done
 if [[ -z "$linux_unpacked" ]]; then
   echo "Cartella linux unpacked non trovata" >&2
-  ls -la "$DIST" >&2 || true
+  find "$DIST" -maxdepth 2 -type d >&2 || true
   exit 1
 fi
 node -e "require('./scripts/flattenWinZip').writeFlatZip(process.argv[1], process.argv[2])" \
@@ -56,10 +67,13 @@ pick_win_zip() {
   return 1
 }
 
-win_x64="$(pick_win_zip 0)"
-win_ia32="$(pick_win_zip 1)"
-[[ -n "$win_x64" ]] || { echo "ZIP Windows x64 assente"; ls -la "$DIST"; exit 1; }
-[[ -n "$win_ia32" ]] || { echo "ZIP Windows ia32 assente"; ls -la "$DIST"; exit 1; }
+win_x64="$(pick_win_zip 0 || true)"
+win_ia32="$(pick_win_zip 1 || true)"
+if [[ -z "$win_x64" || -z "$win_ia32" ]]; then
+  echo "ZIP Windows mancanti (x64='$win_x64' ia32='$win_ia32')" >&2
+  ls -la "$DIST" >&2
+  exit 1
+fi
 
 cp -f "$win_x64" "${DIST}/DUPLO-1.0.0-win.zip"
 cp -f "$win_ia32" "${DIST}/DUPLO-1.0.0-ia32-win.zip"

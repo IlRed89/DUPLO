@@ -1,0 +1,24 @@
+name: Update DUPLO repo profile
+
+on:
+  push:
+    paths:
+      - ".github/workflows/update-duplo-profile.yml"
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descrizione, homepage e topic
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh repo edit IlRed89/DUPLO \
+            --description "DUPLO — trova e pulisce file duplicati (Electron, hash SHA-256/MD5)." \
+            --homepage "https://github.com/IlRed89/DUPLO"
+          gh api -X PUT /repos/IlRed89/DUPLO/topics \
+            -H "Accept: application/vnd.github+json" \
+            -f names[]=duplicate-files -f names[]=file-cleanup -f names[]=electron -f names[]=sha256 -f names[]=windows
