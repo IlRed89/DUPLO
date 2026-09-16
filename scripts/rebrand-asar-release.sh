@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# Sovrascrive app.asar negli zip della release v1.0.0 con il sorgente DUPLO
-# (titolo finestra, h1, menu, logger). Poi ritimbra ProductName sull'exe.
+# Sovrascrive app.asar negli zip unpacked con il sorgente corrente e pubblica
+# una NUOVA GitHub Release (tag = v$(package.json version)).
+# I runtime Electron si scaricano dalla release base (default v1.0.0).
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-IlRed89/DUPLO}"
-TAG="v1.0.0"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PKG_VER="$(node -p "require('${ROOT}/package.json').version")"
+DEST_TAG="${DEST_TAG:-v${PKG_VER}}"
+SOURCE_TAG="${SOURCE_TAG:-v1.0.0}"
 WORKDIR="$(mktemp -d)"
 TOOLS=""
 ASAR_BIN=""
@@ -47,10 +50,15 @@ echo "ASAR_BIN=$ASAR_BIN"
 stamp_exe() {
   local exe="$1"
   [[ -f "$exe" ]] || return 0
-  node --input-type=commonjs - "$exe" <<'NODE'
+  node --input-type=commonjs - "$exe" "$PKG_VER" <<'NODE'
 const fs = require('fs');
 const ResEdit = require('resedit');
 const exePath = process.argv[2];
+const version = String(process.argv[3] || '0.0.0');
+const parts = version.split('.').map((n) => parseInt(n, 10) || 0);
+const major = parts[0] || 0;
+const minor = parts[1] || 0;
+const patch = parts[2] || 0;
 try {
   const binary = fs.readFileSync(exePath);
   const exe = ResEdit.NtExecutable.from(binary, { ignoreCert: true });
@@ -62,16 +70,18 @@ try {
     InternalName: 'DUPLO',
     OriginalFilename: 'DUPLO.exe',
     CompanyName: 'Fabio Rossi',
-    LegalCopyright: 'Copyright © 2026 Fabio Rossi'
+    LegalCopyright: 'Copyright © 2026 Fabio Rossi',
+    FileVersion: version,
+    ProductVersion: version
   };
   for (const ver of versions) {
     const langs = ver.getAllLanguagesForStringValues();
     const lang = langs && langs[0] ? langs[0] : { lang: 1033, codepage: 1200 };
     ver.setStringValues(lang, strings);
-    ver.fixedInfo.fileVersionMS = (1 << 16) | 0;
-    ver.fixedInfo.fileVersionLS = (0 << 16) | 0;
-    ver.fixedInfo.productVersionMS = (1 << 16) | 0;
-    ver.fixedInfo.productVersionLS = (0 << 16) | 0;
+    ver.fixedInfo.fileVersionMS = (major << 16) | minor;
+    ver.fixedInfo.fileVersionLS = (patch << 16) | 0;
+    ver.fixedInfo.productVersionMS = (major << 16) | minor;
+    ver.fixedInfo.productVersionLS = (patch << 16) | 0;
     ver.outputToResourceEntries(res.entries);
   }
   res.outputResource(exe);
@@ -157,11 +167,12 @@ PY
 
 rebrand_zip() {
   local asset="$1"
-  local dest="$WORKDIR/out/$asset"
+  local dest_name="$2"
+  local dest="$WORKDIR/out/$dest_name"
   mkdir -p "$WORKDIR/out" "$WORKDIR/zips/$asset" "$WORKDIR/dl"
   echo "== download $asset =="
   rm -f "$WORKDIR/dl/$asset"
-  gh release download "$TAG" --repo "$REPO" --pattern "$asset" --dir "$WORKDIR/dl"
+  gh release download "$SOURCE_TAG" --repo "$REPO" --pattern "$asset" --dir "$WORKDIR/dl"
   python3 - "$WORKDIR/dl/$asset" "$WORKDIR/zips/$asset" <<'PY'
 import sys, zipfile
 from pathlib import Path
@@ -207,9 +218,10 @@ PY
 }
 
 mkdir -p "$WORKDIR/dl"
-rebrand_zip "DUPLO-1.0.0-win.zip"
-rebrand_zip "DUPLO-1.0.0-ia32-win.zip"
-rebrand_zip "DUPLO-linux-x64.zip"
+echo "== overlay asar: source ${SOURCE_TAG} -> release ${DEST_TAG} (v${PKG_VER}) =="
+rebrand_zip "DUPLO-1.0.0-win.zip" "DUPLO-${PKG_VER}-win.zip"
+rebrand_zip "DUPLO-1.0.0-ia32-win.zip" "DUPLO-${PKG_VER}-ia32-win.zip"
+rebrand_zip "DUPLO-linux-x64.zip" "DUPLO-${PKG_VER}-linux-x64.zip"
 
 python3 - "$WORKDIR/out" <<'PY'
 import sys, zipfile
@@ -225,27 +237,35 @@ PY
 
 (
   cd "$WORKDIR/out"
-  sha256sum DUPLO-1.0.0-win.zip DUPLO-1.0.0-ia32-win.zip DUPLO-linux-x64.zip > SHA256SUMS.txt
+  sha256sum "DUPLO-${PKG_VER}-win.zip" "DUPLO-${PKG_VER}-ia32-win.zip" "DUPLO-${PKG_VER}-linux-x64.zip" > SHA256SUMS.txt
   cat SHA256SUMS.txt
 )
 
-existing="$(gh api "/repos/${REPO}/releases/tags/${TAG}" --jq '.assets[].name')"
-while IFS= read -r name; do
-  [[ -z "$name" ]] && continue
-  case "$name" in
-    DUPLO-1.0.0-win.zip|DUPLO-1.0.0-ia32-win.zip|DUPLO-linux-x64.zip|SHA256SUMS.txt|README.md)
-      echo "Rimuovo asset precedente: $name"
-      gh release delete-asset "$TAG" "$name" --repo "$REPO" --yes || true
-      ;;
-  esac
-done <<< "$existing"
+NOTES="${ROOT}/docs/RELEASE-v${PKG_VER}.md"
+if [[ ! -f "$NOTES" ]]; then
+  NOTES="${ROOT}/CHANGELOG.md"
+fi
 
-gh release upload "$TAG" \
-  "$WORKDIR/out/DUPLO-1.0.0-win.zip" \
-  "$WORKDIR/out/DUPLO-1.0.0-ia32-win.zip" \
-  "$WORKDIR/out/DUPLO-linux-x64.zip" \
+if gh release view "$DEST_TAG" --repo "$REPO" >/dev/null 2>&1; then
+  echo "Release $DEST_TAG già esistente: aggiorno gli asset"
+  existing="$(gh api "/repos/${REPO}/releases/tags/${DEST_TAG}" --jq '.assets[].name')"
+  while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    echo "Rimuovo asset precedente: $name"
+    gh release delete-asset "$DEST_TAG" "$name" --repo "$REPO" --yes || true
+  done <<< "$existing"
+else
+  echo "Creo release $DEST_TAG"
+  gh release create "$DEST_TAG" --repo "$REPO" --title "DUPLO ${DEST_TAG}" --notes-file "$NOTES"
+fi
+
+gh release upload "$DEST_TAG" \
+  "$WORKDIR/out/DUPLO-${PKG_VER}-win.zip" \
+  "$WORKDIR/out/DUPLO-${PKG_VER}-ia32-win.zip" \
+  "$WORKDIR/out/DUPLO-${PKG_VER}-linux-x64.zip" \
   "$WORKDIR/out/SHA256SUMS.txt" \
   "$ROOT/README.md" \
+  "$ROOT/CHANGELOG.md" \
   --repo "$REPO"
 
-echo "Release $TAG aggiornata con asar DUPLO"
+echo "Release $DEST_TAG pubblicata con asar DUPLO ${PKG_VER}"
