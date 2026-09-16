@@ -7,6 +7,22 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-09-16
+
+fix(drag-drop): resolve folder drop using webUtils.getPathForFile and anti-flicker counter.
+
+### Fixed
+
+- Path delle cartelle droppate: `webUtils.getPathForFile` viene eseguito **nel preload** sul `File` nativo (listener `drop` nel mondo isolato). Passare il `File` dal Renderer via `contextBridge` lo clona e il path restava vuoto.
+- Icona di divieto su Windows: `preventDefault` + `dataTransfer.dropEffect = 'copy'` su ogni `dragenter`/`dragover` di `window`, `document` e overlay. **Niente `stopPropagation` sul `dragover`** (in Chromium impedisce il `drop`).
+- Overlay puramente visivo: `pointer-events: none` anche quando è `.active` (i figli restano `pointer-events: none`).
+- Validazione Main invariata: IPC `validate-and-add-folder` con `fs.promises.stat` + `isDirectory()`. I file singoli restano ignorati.
+
+### Changed
+
+- Badge UI, `package.json` e zip di release a **1.1.2**.
+- Il Renderer legge i path dallo stash `consumeDroppedPaths()` e itera anche `dataTransfer.items`.
+
 ## [1.1.1] - 2026-09-16
 
 fix(drag-drop): resolve folder drop using webUtils.getPathForFile and anti-flicker counter.
@@ -70,7 +86,8 @@ Prima release pubblica desktop (zip unpacked, non exe singolo).
 - Dipendenza FFmpeg / transcodifica media: hash solo con `crypto` nativo.
 - Runtime extra oltre `electron-log`.
 
-[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.2
 [1.1.1]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.1
 [1.1.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.0.0
