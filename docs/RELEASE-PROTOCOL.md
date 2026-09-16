@@ -1,6 +1,6 @@
 # Protocollo permanente: Docs, Git e GitHub Releases
 
-Ogni modifica, bugfix o chiusura issue di **DUPLO** non è completa senza le quattro sezioni seguenti. Identità prodotto: **DUPLO** (non DupFinder).
+Ogni modifica, bugfix o chiusura issue di **DUPLO** non è completa senza le quattro sezioni seguenti. Identità prodotto: **DUPLO**.
 
 ## 1. Documentazione (Docs-as-Code)
 
@@ -28,9 +28,9 @@ npm run build -- --win zip --ia32
 
 Nomi sulla GitHub Release (pipeline overlay, non sovrascrivere `v1.0.0`):
 
-- `DUPLO-1.1.3-win.zip`
-- `DUPLO-1.1.3-ia32-win.zip`
-- `DUPLO-1.1.3-linux-x64.zip`
+- `DUPLO-1.1.4-win.zip`
+- `DUPLO-1.1.4-ia32-win.zip`
+- `DUPLO-1.1.4-linux-x64.zip`
 - `SHA256SUMS.txt`
 
 ## 3. Git e tagging
@@ -44,15 +44,15 @@ git push origin main
 git push origin vX.Y.Z
 ```
 
-Esempio 1.1.3:
+Esempio 1.1.4:
 
 ```bash
 git status
 git add .
-git commit -m "docs(release): protocollo permanente Docs-as-Code Git e GitHub Releases"
-git tag -a v1.1.3 -m "Release v1.1.3: protocollo permanente Docs, Git e GitHub Releases"
+git commit -m "chore(branding): allinea identità prodotto a DUPLO 1.1.4"
+git tag -a v1.1.4 -m "Release v1.1.4: identità prodotto DUPLO su ogni file"
 git push origin main
-git push origin v1.1.3
+git push origin v1.1.4
 ```
 
 ## 4. GitHub Release

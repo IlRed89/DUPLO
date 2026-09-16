@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Fase 9.0: il nome DupFinder non deve restare nel codice dell'app.
+ * Identità prodotto: name duplo, productName/executableName DUPLO.
+ * I file dell'app non devono contenere il nome precedente.
  */
 
 const test = require('node:test');
@@ -51,7 +52,7 @@ test('index.html titolo e h1 sono DUPLO', () => {
   assert.doesNotMatch(html, /DupFinder/);
 });
 
-test('nessun DupFinder nei file app (esclusi script di migrazione)', () => {
+test('nessun nome prodotto precedente nei file app (esclusi script overlay)', () => {
   const files = walk(root, []);
   const leftover = [];
   for (const file of files) {

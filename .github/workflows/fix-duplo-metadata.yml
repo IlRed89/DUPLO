@@ -28,6 +28,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "package-lock già DUPLO"
           else
-            git commit -m "chore: rinomina package-lock da dupfinder a duplo"
+            git commit -m "chore: allinea package-lock al nome DUPLO"
             git push
           fi

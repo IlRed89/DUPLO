@@ -1,6 +1,6 @@
 /**
  * @file readme.js
- * @description Trova e legge il manuale README.md sia in sviluppo sia nel pacchetto Electron.
+ * @description Trova e legge il manuale README.md di DUPLO in sviluppo e nel pacchetto Electron.
  */
 
 const fs = require('fs');

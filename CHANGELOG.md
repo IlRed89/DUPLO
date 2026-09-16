@@ -7,6 +7,21 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-09-16
+
+chore(branding): allinea identità prodotto a DUPLO su ogni file.
+
+### Changed
+
+- Nome applicazione nel processo Electron: `app.setName('DUPLO')` e titolo finestra fisso `DUPLO - Trova File Duplicati` (`page-title-updated`).
+- `LICENSE`, `SETUP.md`, `package-lock.json` (`name`/`version` 1.1.4), icona SVG e README toccati così GitHub mostra l’ultimo commit **DUPLO**.
+- Badge UI, zip di release e protocollo a **1.1.4**.
+- Documentazione: identità prodotto solo **DUPLO** (`name` / `productName` / `executableName` / Task Manager).
+
+### Added
+
+- Note di release `docs/RELEASE-v1.1.4.md`.
+
 ## [1.1.3] - 2026-09-16
 
 docs(release): protocollo permanente Docs-as-Code, Git tagging e GitHub Releases.
@@ -101,7 +116,8 @@ Prima release pubblica desktop (zip unpacked, non exe singolo).
 - Dipendenza FFmpeg / transcodifica media: hash solo con `crypto` nativo.
 - Runtime extra oltre `electron-log`.
 
-[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.4
 [1.1.3]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.3
 [1.1.2]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.2
 [1.1.1]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.1
