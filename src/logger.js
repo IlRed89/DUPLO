@@ -1,6 +1,6 @@
 /**
  * @file logger.js
- * @description Modulo centralizzato di tracciamento e logging per DupFinder.
+ * @description Modulo centralizzato di tracciamento e logging per DUPLO.
  * Configura electron-log per consentire un logging capillare su console in ambiente di sviluppo
  * e su file fisico persistente in ambiente di produzione (AppData su Windows, Application Support su macOS, .config su Linux).
  * 
@@ -38,7 +38,7 @@ function getLogFilePath() {
       return fileTransport.getFile().path;
     }
     // Fallback calcolato manualmente nel caso l'app non sia ancora del tutto inizializzata
-    return path.join(os.homedir(), '.dupfinder', 'logs', 'main.log');
+    return path.join(os.homedir(), '.duplo', 'logs', 'main.log');
   } catch (err) {
     console.error('Errore durante il recupero del percorso del file di log:', err);
     return '';
@@ -51,7 +51,7 @@ function getLogFilePath() {
  */
 function logSystemInfo() {
   log.info('======================================================');
-  log.info(' DupFinder - Avvio Sessione di Esecuzione');
+  log.info(' DUPLO - Avvio Sessione di Esecuzione');
   log.info('======================================================');
   log.info(`Piattaforma:       ${process.platform} (${os.type()} ${os.release()})`);
   log.info(`Architettura CPU:  ${process.arch}`);

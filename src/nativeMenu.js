@@ -25,7 +25,7 @@ let currentMenuLanguage = 'it';
  */
 const MENU_STRINGS = {
   it: {
-    appMenu: 'DupFinder',
+    appMenu: 'DUPLO',
     file: 'File',
     fileQuit: 'Esci',
     edit: 'Modifica',
@@ -51,7 +51,7 @@ const MENU_STRINGS = {
     helpWebsite: 'Pagina GitHub'
   },
   en: {
-    appMenu: 'DupFinder',
+    appMenu: 'DUPLO',
     file: 'File',
     fileQuit: 'Quit',
     edit: 'Edit',
@@ -203,7 +203,7 @@ function buildMenuTemplate(lang, actions = {}) {
           try {
             logger.info('[Menu] Apertura pagina GitHub nel browser di sistema');
             const { shell } = require('electron');
-            await shell.openExternal('https://github.com/IlRed89/DupFinder');
+            await shell.openExternal('https://github.com/IlRed89/DUPLO');
           } catch (err) {
             logger.error(`[Menu] Impossibile aprire GitHub: ${err.message}`);
           }
