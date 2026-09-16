@@ -75,7 +75,6 @@ function filterDirectoryPaths(rawPaths, io = {}) {
 async function validateDroppedPath(rawPath, io = {}) {
   const statFn = typeof io.stat === 'function' ? io.stat : fsp.stat.bind(fsp);
   const raw = rawPath == null ? '' : String(rawPath);
-  logger.info(`[IPC] validate-and-add-folder: ${JSON.stringify(raw)}`);
   logger.info(`[Drop] validate-and-add-folder: ${JSON.stringify(raw)}`);
 
   try {
