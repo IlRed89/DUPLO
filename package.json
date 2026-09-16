@@ -1,7 +1,7 @@
 {
-  "name": "dupfinder",
+  "name": "duplo",
   "version": "1.0.0",
-  "description": "Cross-platform fast, portable duplicate file finder GUI built with Electron and Node.js",
+  "description": "DUPLO — tool desktop per trovare e pulire file duplicati (Electron, hash SHA-256/MD5).",
   "main": "main.js",
   "author": "Fabio Rossi",
   "license": "MIT",
@@ -28,8 +28,8 @@
     "resedit": "^2.0.3"
   },
   "build": {
-    "appId": "com.fabiorossi.dupfinder",
-    "productName": "DupFinder",
+    "appId": "com.fabiorossi.duplo",
+    "productName": "DUPLO",
     "copyright": "Copyright © 2026 Fabio Rossi",
     "directories": {
       "output": "dist",
@@ -88,7 +88,7 @@
       ],
       "icon": "build/icon.png",
       "category": "Utility",
-      "executableName": "DupFinder"
+      "executableName": "DUPLO"
     }
   }
 }
