@@ -9,7 +9,8 @@
 </head>
 <body>
 
-  <!-- Overlay drop full-window (Fase 10.0): nascosto di default, classe .active al drag. -->
+  <!-- Overlay drop full-window: visibile con .active. I figli hanno pointer-events:none
+       (anti-flicker). preventDefault su window+overlay; path via webUtils.getPathForFile. -->
   <div id="drag-overlay" class="drag-overlay" aria-hidden="true">
     <div class="drag-overlay-panel" role="status" aria-live="polite">
       <p class="drag-overlay-title">Trascina qui le cartelle</p>
@@ -23,7 +24,7 @@
       <!-- Icona Fase 1: stesso SVG in build/icon.svg, incorporato (nessun download). -->
       <img class="brand-icon" src="../../build/icon.svg" width="36" height="36" alt="DUPLO">
       <div class="brand-text">
-        <h1>DUPLO <span class="badge">v1.1.0</span></h1>
+        <h1>DUPLO <span class="badge">v1.1.1</span></h1>
         <p>Ricerca e pulizia sicura di file duplicati</p>
       </div>
     </div>
