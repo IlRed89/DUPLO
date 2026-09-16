@@ -165,3 +165,19 @@ test('Scanner: Nomi Simili raggruppa remix senza richiedere hash identico', asyn
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
+
+test('Hasher: percorso vuoto rifiutato senza UnhandledPromiseRejection', async () => {
+  await assert.rejects(
+    () => computeFullHash('', 'sha256'),
+    /Percorso file vuoto/
+  );
+  await assert.rejects(
+    () => computePartialHash('   ', 'sha256'),
+    /Percorso file vuoto/
+  );
+});
+
+test('Scanner: elenco cartelle vuoto o path non validi lancia a monte', async () => {
+  await assert.rejects(() => findDuplicates([], {}, new ScanCancellationToken(), () => {}), /almeno una cartella/);
+  await assert.rejects(() => findDuplicates(['', '   '], {}, new ScanCancellationToken(), () => {}), /Nessun percorso cartella valido/);
+});

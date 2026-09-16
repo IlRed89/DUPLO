@@ -1,6 +1,8 @@
 /**
- * Convertitore Markdown → HTML sufficiente per il README di DUPLO.
- * Funziona sia nel renderer (script tag) sia nei test Node (module.exports).
+ * @file markdown.js
+ * @description Convertitore Markdown → HTML sufficiente per il README di DUPLO.
+ * Funziona sia nel renderer (`<script>`) sia nei test Node (`module.exports`).
+ * Non è un parser CommonMark completo: copre titoli, liste, tabelle, code fence, link.
  */
 (function (root, factory) {
   const api = factory();
@@ -9,6 +11,11 @@
   }
   root.DuploMarkdown = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  /**
+   * Escape HTML per testo Markdown interpolato nel DOM.
+   * @param {unknown} str
+   * @returns {string}
+   */
   function escapeHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
@@ -17,6 +24,11 @@
       .replace(/"/g, '&quot;');
   }
 
+  /**
+   * Inline: link, code, grassetto. Si applica dopo escapeHtml.
+   * @param {string} text
+   * @returns {string}
+   */
   function inline(text) {
     let out = escapeHtml(text);
     out = out.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
@@ -40,6 +52,11 @@
       .replace(/^-+|-+$/g, '');
   }
 
+  /**
+   * Converte un documento Markdown (README) in HTML.
+   * @param {unknown} md
+   * @returns {string}
+   */
   function markdownToHtml(md) {
     const lines = String(md || '').replace(/\r\n/g, '\n').split('\n');
     const html = [];
