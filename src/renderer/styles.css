@@ -1,6 +1,10 @@
 /* ==========================================================================
-   DUPLO - Stili Moderni per Interfaccia Utente Desktop
-   Dark Theme raffinato, palette Tailwind slate/cyan, animazioni fluide e accessibilità
+   DUPLO — stili dell'interfaccia desktop (Renderer).
+   Palette slate/cyan, dark di default. Nessun CSS da CDN (app offline).
+
+   Overlay drop: `.drag-overlay` ha pointer-events:none (anti-flicker del
+   contatore dragenter/dragleave). Lo splitter usa `.is-dragging` +
+   `body.is-resizing` per bloccare la selezione testo durante il resize.
    ========================================================================== */
 
 :root {
@@ -275,11 +279,6 @@ body.is-resizing * {
   border-radius: var(--radius-md);
   padding: 0.45rem;
   transition: border-color 0.15s, background 0.15s;
-}
-
-.folder-list.is-drop-target {
-  border-color: var(--primary);
-  background: var(--primary-glow);
 }
 
 .drop-hint {
@@ -740,12 +739,6 @@ body.is-resizing * {
   font-weight: 600;
 }
 
-.group-hash {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-dim);
-}
-
 .group-wasted {
   font-size: 0.8rem;
   color: #f87171;
@@ -827,12 +820,6 @@ body.is-resizing * {
   color: var(--text-muted);
   font-size: 0.75rem;
   white-space: nowrap;
-}
-
-.file-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
 }
 
 .btn-icon {
