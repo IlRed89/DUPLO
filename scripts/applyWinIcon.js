@@ -1,7 +1,7 @@
 /**
  * @file applyWinIcon.js
  * @description Hook electron-builder `afterPack`.
- * Timbra `build/icon.ico` su DupFinder.exe con `resedit` (PE puro JS).
+ * Timbra `build/icon.ico` su DUPLO.exe con `resedit` (PE puro JS).
  *
  * Perché esiste: su Linux `win.signAndEditExecutable` è false (niente Wine
  * per Authenticode), e electron-builder in quel caso SALTA anche rcedit,
@@ -77,7 +77,7 @@ async function applyWinIcon(context) {
     }
     const appOutDir = (context && context.appOutDir) || '';
     const product = (context && context.packager && context.packager.appInfo
-      && context.packager.appInfo.productFilename) || 'DupFinder';
+      && context.packager.appInfo.productFilename) || 'DUPLO';
     const exePath = path.join(appOutDir, `${product}.exe`);
     if (!fs.existsSync(exePath)) {
       console.warn(`[applyWinIcon] Eseguibile assente: "${exePath}"`);

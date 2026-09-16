@@ -10,7 +10,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = api;
   }
-  root.DupFinderFileCategories = api;
+  root.DuploFileCategories = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const FILE_CATEGORIES = {
     all: {

@@ -3,7 +3,7 @@
  * @description Hook electron-builder `afterAllArtifactBuild`.
  * Rigenera gli ZIP Windows con `archiver`: ogni entry è relativa a
  * `win-unpacked` / `win-ia32-unpacked`, quindi exe e dll stanno in RADICE
- * (niente cartella padre tipo DupFinder-win32-x64/).
+ * (niente cartella padre tipo DUPLO-win32-x64/).
  */
 
 const fs = require('fs');

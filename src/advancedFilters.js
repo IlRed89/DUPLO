@@ -14,7 +14,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = api;
   }
-  root.DupFinderAdvancedFilters = api;
+  root.DuploAdvancedFilters = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const KB = 1024;
   const MB = 1024 * 1024;
