@@ -7,7 +7,6 @@
  * Ogni interazione viene puntualmente tracciata inviando log persistenti al Main Process.
  */
 
-// Stato applicativo dell'interfaccia
 const state = {
   selectedFolders: [],
   isScanning: false,
@@ -286,34 +285,17 @@ function initSplitter() {
 
 function initFolderDropZone() {
   var overlay = dom.dragOverlay;
-  var dragDepth = 0;
+  var dragCounter = 0;
   var dragActive = false;
   var opts = { capture: true };
 
   function isFileDrag(event) {
     try {
       var types = event && event.dataTransfer && event.dataTransfer.types;
-      if (!types) return false;
-      return Array.from(types).indexOf('Files') !== -1;
-    } catch (_err) {
-      return false;
-    }
-  }
-
-  function hasLeftWindow(event) {
-    try {
-      var related = event && event.relatedTarget;
-      if (related && related !== window && related !== document) {
-        try {
-          if (related instanceof Node && document.documentElement.contains(related)) return false;
-        } catch (_err) { /* ignore */ }
-      }
-      var x = event && typeof event.clientX === 'number' ? event.clientX : -1;
-      var y = event && typeof event.clientY === 'number' ? event.clientY : -1;
-      var w = window.innerWidth || 0;
-      var h = window.innerHeight || 0;
-      if (x > 0 && y > 0 && x < w && y < h) return false;
-      return true;
+      if (!types || types.length === 0) return true;
+      if (typeof types.contains === 'function' && types.contains('Files')) return true;
+      var arr = Array.from(types);
+      return arr.indexOf('Files') !== -1 || arr.indexOf('application/x-moz-file') !== -1;
     } catch (_err) {
       return true;
     }
@@ -323,6 +305,9 @@ function initFolderDropZone() {
     try {
       event.preventDefault();
       event.stopPropagation();
+      if (event.dataTransfer) {
+        try { event.dataTransfer.dropEffect = 'copy'; } catch (_err) { /* ignore */ }
+      }
     } catch (_err) { /* ignore */ }
   }
 
@@ -331,6 +316,7 @@ function initFolderDropZone() {
       if (!dragActive) {
         dragActive = true;
         logToMain('info', 'Iniziato drag & drop');
+        try { console.info('[DUPLO drop] overlay attivo'); } catch (_err) { /* ignore */ }
       }
       if (overlay) {
         overlay.classList.add('active');
@@ -343,7 +329,7 @@ function initFolderDropZone() {
 
   function hideOverlay() {
     try {
-      dragDepth = 0;
+      dragCounter = 0;
       dragActive = false;
       if (overlay) {
         overlay.classList.remove('active');
@@ -358,10 +344,7 @@ function initFolderDropZone() {
     try {
       blockElectronNavigation(event);
       if (!isFileDrag(event)) return;
-      dragDepth += 1;
-      if (event.dataTransfer) {
-        try { event.dataTransfer.dropEffect = 'copy'; } catch (_err) { /* ignore */ }
-      }
+      dragCounter += 1;
       showOverlay();
     } catch (err) {
       logToMain('error', 'dragenter fallito: ' + (err && err.message));
@@ -371,9 +354,6 @@ function initFolderDropZone() {
   function onDragOver(event) {
     try {
       blockElectronNavigation(event);
-      if (event.dataTransfer) {
-        try { event.dataTransfer.dropEffect = 'copy'; } catch (_err) { /* ignore */ }
-      }
       if (isFileDrag(event) && !dragActive) showOverlay();
     } catch (err) {
       logToMain('error', 'dragover fallito: ' + (err && err.message));
@@ -383,8 +363,8 @@ function initFolderDropZone() {
   function onDragLeave(event) {
     try {
       blockElectronNavigation(event);
-      dragDepth -= 1;
-      if (dragDepth <= 0 || hasLeftWindow(event)) hideOverlay();
+      dragCounter -= 1;
+      if (dragCounter <= 0) hideOverlay();
     } catch (err) {
       logToMain('error', 'dragleave fallito: ' + (err && err.message));
       hideOverlay();
@@ -394,11 +374,24 @@ function initFolderDropZone() {
   async function onDrop(event) {
     try {
       blockElectronNavigation(event);
+      dragCounter = 0;
       hideOverlay();
       await handleFolderDrop(event);
     } catch (err) {
       hideOverlay();
       logToMain('error', 'drop fallito: ' + (err && err.message));
+    }
+  }
+
+  function armPreventDefault(target, label) {
+    if (!target || typeof target.addEventListener !== 'function') return;
+    try {
+      target.addEventListener('dragenter', blockElectronNavigation, opts);
+      target.addEventListener('dragover', blockElectronNavigation, opts);
+      target.addEventListener('drop', blockElectronNavigation, opts);
+      logToMain('debug', 'preventDefault drop armato su ' + label);
+    } catch (err) {
+      logToMain('error', 'armPreventDefault ' + label + ': ' + (err && err.message));
     }
   }
 
@@ -408,46 +401,86 @@ function initFolderDropZone() {
     window.addEventListener('dragleave', onDragLeave, opts);
     window.addEventListener('drop', onDrop, opts);
     window.addEventListener('dragend', function() { hideOverlay(); }, opts);
-    logToMain('debug', 'Listener drag & drop globali installati su window.');
+    armPreventDefault(document, 'document');
+    armPreventDefault(overlay, '#drag-overlay');
+    logToMain('debug', 'Listener drag & drop globali installati su window, document e overlay.');
   } catch (err) {
     logToMain('error', 'Impossibile installare il drag & drop: ' + (err && err.message));
   }
+}
+
+function resolveDroppedFilePath(file) {
+  try {
+    var api = (window.duploAPI && window.duploAPI.getPathForFile)
+      ? window.duploAPI
+      : (window.api && window.api.getPathForFile ? window.api : null);
+    if (api && typeof api.getPathForFile === 'function') {
+      var fromNative = api.getPathForFile(file);
+      if (typeof fromNative === 'string' && fromNative.length > 0) return fromNative;
+    }
+  } catch (err) {
+    logToMain('warn', 'getPathForFile fallito: ' + (err && err.message));
+  }
+  try {
+    if (file && typeof file.path === 'string' && file.path.length > 0) return file.path;
+  } catch (_err) { /* ignore */ }
+  return '';
 }
 
 async function handleFolderDrop(event) {
   try {
     logToMain('info', 'Iniziato drag & drop (drop ricevuto)');
     var files = event.dataTransfer && event.dataTransfer.files ? Array.from(event.dataTransfer.files) : [];
+    try { console.info('[DUPLO drop] elementi rilasciati:', files.length); } catch (_err) { /* ignore */ }
     logToMain('info', 'Drop: ' + files.length + ' elementi nel DataTransfer');
-    var rawPaths = [];
-    files.forEach(function(file) {
-      var droppedPath = file && file.path ? file.path : '';
-      if (!droppedPath) {
-        logToMain('warn', 'Drop ignorato: percorso Electron assente per «' + ((file && file.name) || 'senza nome') + '»');
-        return;
-      }
-      rawPaths.push(droppedPath);
-    });
-    if (rawPaths.length === 0) {
-      logToMain('warn', 'Drop ignorato: nessun percorso cartella estraibile');
+    if (files.length === 0) {
+      logToMain('warn', 'Drop ignorato: DataTransfer.files vuoto');
       return;
     }
-    var result = await window.duploAPI.filterDirectories(rawPaths);
+
     var added = 0;
-    (result.skipped || []).forEach(function(item) {
-      logToMain('warn', 'Drop ignorato: non è una cartella (' + item.path + ' — ' + item.reason + ')');
-    });
-    (result.directories || []).forEach(function(dir) {
-      var before = state.selectedFolders.length;
-      addFolderPath(dir, 'drag & drop');
-      if (state.selectedFolders.length > before) added += 1;
-    });
-    logToMain('info', 'Aggiunte ' + added + ' cartelle via drop');
-    if (!(result.directories || []).length) {
+    var validatedDirs = 0;
+    var i;
+    for (i = 0; i < files.length; i += 1) {
+      var file = files[i];
+      var droppedPath = resolveDroppedFilePath(file);
+      var label = (file && file.name) ? file.name : ('indice ' + i);
+      logToMain('debug', 'Drop item «' + label + '» path=' + (droppedPath || '(vuoto)'));
+      try { console.info('[DUPLO drop] item', label, droppedPath || '(vuoto)'); } catch (_err) { /* ignore */ }
+      if (!droppedPath) {
+        logToMain('warn', 'Drop ignorato: percorso Electron assente per «' + label + '» (webUtils.getPathForFile)');
+        continue;
+      }
+      var result = null;
+      try {
+        if (window.duploAPI && typeof window.duploAPI.validateAndAddFolder === 'function') {
+          result = await window.duploAPI.validateAndAddFolder(droppedPath);
+        } else if (window.api && typeof window.api.validateAndAddFolder === 'function') {
+          result = await window.api.validateAndAddFolder(droppedPath);
+        }
+      } catch (err) {
+        logToMain('error', 'validate-and-add-folder fallito per «' + droppedPath + '»: ' + (err && err.message));
+        continue;
+      }
+      if (result && result.ok && result.directory) {
+        validatedDirs += 1;
+        var before = state.selectedFolders.length;
+        addFolderPath(result.directory, 'drag & drop');
+        if (state.selectedFolders.length > before) added += 1;
+      } else {
+        var skipped = result && result.skipped ? result.skipped : { path: droppedPath, reason: 'non è una cartella' };
+        logToMain('warn', 'Drop ignorato: non è una cartella (' + skipped.path + ' — ' + skipped.reason + ')');
+      }
+    }
+
+    logToMain('info', 'Aggiunte ' + added + ' cartelle via drop (validate-and-add-folder, ' + validatedDirs + ' directory valide)');
+    try { console.info('[DUPLO drop] aggiunte', added, 'cartelle'); } catch (_err) { /* ignore */ }
+    if (validatedDirs === 0) {
       alert('Nessuna cartella valida nel trascinamento. Trascina cartelle, non singoli file.');
     }
   } catch (err) {
     logToMain('error', 'Errore drag & drop: ' + err.message);
+    try { console.error('[DUPLO drop]', err); } catch (_err) { /* ignore */ }
   }
 }
 
