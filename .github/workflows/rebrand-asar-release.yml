@@ -1,14 +1,8 @@
 name: Rebrand asar DUPLO negli zip
 
+# Temporaneamente solo manuale, per caricare i sorgenti v1.1.0
+# senza far partire l'overlay a metà commit.
 on:
-  push:
-    paths:
-      - ".github/workflows/rebrand-asar-release.yml"
-      - "scripts/rebrand-asar-release.sh"
-      - "main.js"
-      - "src/renderer/index.html"
-      - "src/logger.js"
-      - "package.json"
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +14,7 @@ permissions:
 
 jobs:
   rebrand:
-    name: Sovrascrivi asar e ritimbra DUPLO.exe
+    name: Nuova release con asar aggiornato
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -28,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Patch asar + upload release v1.0.0
+      - name: Overlay asar + GitHub Release da package.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
