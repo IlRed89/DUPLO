@@ -37,6 +37,15 @@ electron-builder.env
 logs/
 *.log
 
+# Archivi temporanei e zip locali (le release stanno su GitHub Releases)
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+*.asar
+
 # Coverage e cache di test/lint
 coverage/
 .nyc_output/
