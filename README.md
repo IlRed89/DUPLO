@@ -1,6 +1,6 @@
 # DUPLO — Manuale d'uso
 
-**Versione 1.1.0** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
+**Versione 1.1.1** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md) · Release: [github.com/IlRed89/DUPLO/releases](https://github.com/IlRed89/DUPLO/releases)
 
@@ -28,7 +28,7 @@ Indice:
 
 DUPLO **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DUPLO.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DUPLO-1.1.0-win.zip` (64-bit) o `DUPLO-1.1.0-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
+1. Scarica `DUPLO-1.1.1-win.zip` (64-bit) o `DUPLO-1.1.1-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows SmartScreen**, leggi il riquadro [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice) qui sotto.
@@ -39,10 +39,10 @@ Lo zip Windows è **piatto**: dopo l’estrazione trovi `DUPLO.exe` e le `.dll` 
 
 | Piattaforma | Architettura | Artefatto della release | Supporto |
 |---|---|---|---|
-| Windows 10 / 11 | **x64 (64-bit)** | `DUPLO-1.1.0-win.zip` | Sì |
-| Windows 10 / 11 | **x86 (32-bit / ia32)** | `DUPLO-1.1.0-ia32-win.zip` | Sì |
+| Windows 10 / 11 | **x64 (64-bit)** | `DUPLO-1.1.1-win.zip` | Sì |
+| Windows 10 / 11 | **x86 (32-bit / ia32)** | `DUPLO-1.1.1-ia32-win.zip` | Sì |
 | Windows ARM64 | arm64 | — | Non in questa release |
-| Linux | x64 | `DUPLO-1.1.0-linux-x64.zip` | Sì |
+| Linux | x64 | `DUPLO-1.1.1-linux-x64.zip` | Sì |
 | Linux | x86 32-bit | — | No (Electron 33 non pubblica runtime ia32) |
 | macOS | — | build locale `npm run dist:mac` | Solo compilazione su Mac |
 
@@ -117,7 +117,11 @@ Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premut
 ### Cartelle da analizzare
 
 - **Aggiungi Cartella** apre la finestra nativa del sistema (Esplora file / Finder).
-- **Trascina** una o più cartelle **ovunque nella finestra** (non solo sul rettangolo dell'elenco). DUPLO verifica ogni path nel Main Process con `fs.statSync`: accetta solo directory, logga e scarta file o percorsi illeggibili. Su `dragenter`/`dragover` chiama sempre `preventDefault` così Electron non naviga via.
+- **Trascina** una o più cartelle **ovunque nella finestra** (non solo sul rettangolo dell'elenco). Compare l'overlay «Trascina qui le cartelle».
+  - Percorso nativo: il preload chiama `webUtils.getPathForFile(file)` (`window.duploAPI.getPathForFile` / `window.api.getPathForFile`). In Electron recente `File.path` è vuoto con `contextIsolation`.
+  - `dragenter` / `dragover` / `drop` su `window` (e preventDefault anche su document/overlay) con `dropEffect = 'copy'`, altrimenti Windows mostra l'icona di divieto e il `drop` non parte.
+  - Overlay anti-flicker: contatore `dragenter`/`dragleave` e `pointer-events: none` sui testi interni.
+  - Il Main valida ogni path con `fs.promises.stat` (`validate-and-add-folder`): solo directory; i file singoli vengono ignorati e loggati.
 - Ogni cartella compare nell'elenco: puoi toglierne una sola o **Rimuovi Tutte**.
 - DUPLO scende in tutte le sottocartelle.
 - I collegamenti simbolici non vengono seguiti, per evitare di contare due volte lo stesso file o di entrare in cicli.
@@ -317,7 +321,7 @@ DUPLO/
     ├── logger.js                # electron-log (console + file)
     ├── hasher.js                # crypto nativo: chunk 1 MB, poi stream SHA-256/MD5
     ├── scanner.js               # walk cross-platform, filtri, raggruppamento
-    ├── dropFilter.js            # drop: statSync, solo directory
+    ├── dropFilter.js            # drop: fs.promises.stat, solo directory
     ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
     ├── advancedFilters.js       # parsing formato esatto, date, KB/MB
     ├── fuzzyName.js             # similarità nomi (Levenshtein + Dice, soglia 80%)
@@ -326,7 +330,7 @@ DUPLO/
     └── renderer/
         ├── index.html
         ├── styles.css
-        ├── renderer.js          # eventi UI, splitter, drag & drop
+        ├── renderer.js          # eventi UI, splitter, drag & drop (webUtils + counter)
         ├── splitterMath.js      # clamp larghezza sidebar
         └── markdown.js          # rendering del manuale in-app
 ```
@@ -359,7 +363,7 @@ npm start
 | `npm start` | App in sviluppo |
 | `npm test` | Test hasher, scanner, fuzzy, ZIP piatto, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.1.0-win.zip`, `DUPLO-1.1.0-ia32-win.zip`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.1.1-win.zip`, `DUPLO-1.1.1-ia32-win.zip`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
