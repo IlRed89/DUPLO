@@ -217,7 +217,7 @@ function buildMenuTemplate(lang, actions = {}) {
 
 /**
  * Ricostruisce e applica la barra dei menu nativa nella lingua richiesta.
- * Chiamata all'avvio (italiano) e ad ogni evento IPC `language-changed`.
+ * Chiamata all'avvio (italiano) e ad ogni IPC `language-changed` (`invoke`).
  *
  * @param {unknown} lang - Codice lingua dal Renderer (es. "it", "en-US")
  * @param {{ openGuide?: function(): void, openLogs?: function(): void }} [actions]

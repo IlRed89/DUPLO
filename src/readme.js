@@ -49,6 +49,7 @@ function resolveReadmePath(opts = {}) {
  *
  * @param {{ resourcesPath?: string, appPath?: string, packaged?: boolean }} [opts]
  * @returns {{ path: string, content: string }}
+ * @throws {Error} Se nessun candidato README esiste sul disco.
  */
 function loadReadme(opts = {}) {
   const readmePath = resolveReadmePath(opts);
