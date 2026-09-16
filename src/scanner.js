@@ -66,9 +66,3 @@ class ScanCancellationToken {
     logger.info('[Scanner] Richiesta di interruzione scansione ricevuta (CancellationToken)');
   }
 }
-
-module.exports = {
-  ScanCancellationToken,
-  normalizeCrossPlatformPath,
-  findDuplicates: async function() { return []; }
-};
