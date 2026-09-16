@@ -89,7 +89,6 @@ body {
   flex-direction: column;
 }
 
-/* Header dell'applicazione */
 .app-header {
   background-color: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-color);
@@ -158,14 +157,12 @@ body {
   padding: 0.25rem 0.45rem;
 }
 
-/* Layout Principale a due colonne + splitter */
 .app-body {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* Pannello Laterale di Configurazione */
 .sidebar-panel {
   flex: 0 0 380px;
   width: 380px;
@@ -245,7 +242,6 @@ body.is-resizing * {
   border-top: 1px solid var(--border-color);
 }
 
-/* Sezioni della Sidebar */
 .panel-section {
   display: flex;
   flex-direction: column;
@@ -263,7 +259,6 @@ body.is-resizing * {
   justify-content: space-between;
 }
 
-/* Lista Cartelle Selezionate */
 .folder-list {
   display: flex;
   flex-direction: column;
@@ -289,7 +284,6 @@ body.is-resizing * {
   color: var(--text-dim);
 }
 
-/* Overlay Drag & Drop full-window: copre l'intera finestra, nascosto di default. */
 .drag-overlay {
   position: fixed;
   inset: 0;
@@ -309,6 +303,14 @@ body.is-resizing * {
 .drag-overlay.active {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
+}
+
+.drag-overlay-panel,
+.drag-overlay *,
+.drag-overlay *::before,
+.drag-overlay *::after {
+  pointer-events: none !important;
 }
 
 .drag-overlay-panel {
@@ -392,7 +394,6 @@ body.is-resizing * {
   border-radius: var(--radius-sm);
 }
 
-/* Griglia Parametri di Confronto (Cards / Checkboxes) */
 .criteria-grid {
   display: flex;
   flex-direction: column;
@@ -452,7 +453,6 @@ body.is-resizing * {
   color: var(--success);
 }
 
-/* Filtri Avanzati Collapsible */
 .filter-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -486,7 +486,6 @@ body.is-resizing * {
   border-color: var(--primary);
 }
 
-/* Bottoni */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -542,7 +541,6 @@ body.is-resizing * {
   border-radius: var(--radius-sm);
 }
 
-/* Area Contenuto Principale / Risultati */
 .main-content {
   flex: 1 1 auto;
   min-width: 320px;
@@ -552,7 +550,6 @@ body.is-resizing * {
   background-color: var(--bg-app);
 }
 
-/* Barra di Avanzamento e Live Status */
 .scan-progress-bar-container {
   background: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-color);
@@ -614,7 +611,6 @@ body.is-resizing * {
   white-space: nowrap;
 }
 
-/* Barra delle Statistiche Risultati */
 .stats-banner {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -652,7 +648,6 @@ body.is-resizing * {
   color: #f87171;
 }
 
-/* Toolbar Azioni dei Risultati */
 .results-toolbar {
   padding: 0.75rem 1.5rem;
   display: flex;
@@ -668,7 +663,6 @@ body.is-resizing * {
   gap: 0.65rem;
 }
 
-/* Contenitore Lista Gruppi Duplicati */
 .results-scroll-area {
   flex: 1;
   overflow-y: auto;
@@ -692,7 +686,6 @@ body.is-resizing * {
   gap: 1rem;
 }
 
-/* Card Gruppo Duplicato */
 .duplicate-group-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -852,7 +845,6 @@ body.is-resizing * {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
-/* Stato Vuoto (Placeholder) */
 .empty-placeholder {
   display: flex;
   flex-direction: column;
@@ -882,7 +874,6 @@ body.is-resizing * {
   line-height: 1.4;
 }
 
-/* Modale di Conferma */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -942,7 +933,6 @@ body.is-resizing * {
   background: var(--bg-card);
 }
 
-/* Pannello Guida (README incluso nel programma) */
 .guide-overlay {
   position: fixed;
   inset: 0;
