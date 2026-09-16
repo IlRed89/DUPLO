@@ -7,6 +7,22 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-16
+
+fix(drag-drop): resolve folder drop using webUtils.getPathForFile and anti-flicker counter.
+
+### Fixed
+
+- Percorso delle cartelle droppate: in Electron recente `File.path` è vuoto con `contextIsolation`. Il preload espone `webUtils.getPathForFile(file)` come `window.duploAPI.getPathForFile` / `window.api.getPathForFile`.
+- Icona di divieto su Windows: `preventDefault` + `stopPropagation` + `dataTransfer.dropEffect = 'copy'` su `dragenter`/`dragover`/`drop` di `window`, `document` e overlay.
+- Flicker overlay: contatore `dragenter`/`dragleave` (si nasconde solo a `dragCounter <= 0`) e `pointer-events: none` su tutti i figli dell’overlay.
+- Validazione cartella nel Main: canale IPC `validate-and-add-folder` con `fs.promises.stat` + `isDirectory()`. I file singoli restano ignorati.
+
+### Changed
+
+- Badge UI, `package.json` e zip di release a **1.1.1**.
+- Manuale: architettura drop (`webUtils` + IPC async) e nomi zip `DUPLO-1.1.1-*.zip`.
+
 ## [1.1.0] - 2026-09-16
 
 Overlay drag & drop a tutta finestra, documentazione allineata, nuova release scaricabile.
@@ -54,6 +70,7 @@ Prima release pubblica desktop (zip unpacked, non exe singolo).
 - Dipendenza FFmpeg / transcodifica media: hash solo con `crypto` nativo.
 - Runtime extra oltre `electron-log`.
 
-[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.1
 [1.1.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.0.0

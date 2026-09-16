@@ -1,1 +1,101 @@
-PLACEHOLDER
+{
+  "name": "duplo",
+  "productName": "DUPLO",
+  "version": "1.1.1",
+  "description": "DUPLO — tool desktop per trovare e pulire file duplicati (Electron, hash SHA-256/MD5).",
+  "main": "main.js",
+  "author": "Fabio Rossi",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test src/**/*.test.js",
+    "icons": "node scripts/generate-icons.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win --linux",
+    "dist:win": "electron-builder --win",
+    "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\"",
+    "dist:win-dir": "electron-builder --win dir",
+    "dist:mac": "electron-builder --mac dir",
+    "dist:linux": "electron-builder --linux dir"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.4"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "png2icons": "^2.0.1",
+    "resedit": "^2.0.3"
+  },
+  "build": {
+    "appId": "com.fabiorossi.duplo",
+    "productName": "DUPLO",
+    "executableName": "DUPLO",
+    "copyright": "Copyright © 2026 Fabio Rossi",
+    "extraMetadata": {
+      "name": "duplo",
+      "productName": "DUPLO"
+    },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "README.md",
+      "src/**/*",
+      "!src/**/*.test.js",
+      "build/icon.png",
+      "build/icon.ico",
+      "build/icon.svg",
+      "package.json"
+    ],
+    "asar": true,
+    "publish": null,
+    "afterPack": "./scripts/applyWinIcon.js",
+    "afterAllArtifactBuild": "./scripts/flattenWinZip.js",
+    "extraResources": [
+      {
+        "from": "README.md",
+        "to": "README.md"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "executableName": "DUPLO",
+      "signAndEditExecutable": false,
+      "certificateFile": "${env.WIN_CSC_FILE}",
+      "certificatePassword": "${env.WIN_CSC_PASSWORD}",
+      "signingHashAlgorithms": [
+        "sha256"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.utilities",
+      "identity": null
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "category": "Utility",
+      "executableName": "DUPLO"
+    }
+  }
+}
