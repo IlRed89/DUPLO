@@ -21,6 +21,14 @@ const {
   normalizeDateRange
 } = require('./src/advancedFilters');
 
+/** Nome visibile in Task Manager, menu nativo e titolo finestra. */
+const APP_NAME = 'DUPLO';
+const WINDOW_TITLE = 'DUPLO - Trova File Duplicati';
+
+if (typeof app.setName === 'function') {
+  app.setName(APP_NAME);
+}
+
 function packagedReadmeOptions() {
   return {
     resourcesPath: process.resourcesPath,
@@ -87,7 +95,7 @@ function createWindow() {
     // Fase 6.0: sotto queste soglie header, sidebar e risultati si sovrapporrebbero.
     minWidth: 920,
     minHeight: 700,
-    title: 'DUPLO - Trova File Duplicati',
+    title: WINDOW_TITLE,
     icon: resolveWindowIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -142,6 +150,13 @@ function createWindow() {
     logger.warn(`[Main] setWindowOpenHandler fallito: ${err.message}`);
   }
 
+  mainWindow.on('page-title-updated', (event) => {
+    event.preventDefault();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitle(WINDOW_TITLE);
+    }
+  });
+
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     logger.info('[Main] Finestra principale mostrata all\'utente');
@@ -186,7 +201,9 @@ function resolveWindowIcon() {
  * Inizializzazione dell'applicazione Electron al completamento dell'evento 'ready'.
  */
 app.whenReady().then(() => {
+  app.setName(APP_NAME);
   logSystemInfo();
+  logger.info(`[Main] Nome applicazione: ${APP_NAME}`);
   logger.info('[Main] Avvio senza FFmpeg: hashing solo con crypto nativo (SHA-256/MD5)');
   // Menu nativo in italiano all'avvio; il Renderer potrà cambiarlo via IPC.
   try {
