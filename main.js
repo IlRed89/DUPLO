@@ -1,6 +1,6 @@
 /**
  * @file main.js
- * @description Processo Principale (Main Process) di DupFinder in Electron.
+ * @description Processo Principale (Main Process) di DUPLO in Electron.
  * Gestisce il ciclo di vita dell'applicazione desktop, l'apertura delle finestre native,
  * il routing IPC sicuro con il Renderer Process, la registrazione dei log su file persistente
  * e l'esecuzione asincrona del motore di ricerca duplicati.
@@ -86,7 +86,7 @@ function createWindow() {
     // Fase 6.0: sotto queste soglie header, sidebar e risultati si sovrapporrebbero.
     minWidth: 920,
     minHeight: 700,
-    title: 'DupFinder - Trova File Duplicati',
+    title: 'DUPLO - Trova File Duplicati',
     icon: resolveWindowIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -597,8 +597,8 @@ ipcMain.handle('report:export', async (_event, { format, groups }) => {
   try {
     const ext = format === 'csv' ? 'csv' : 'json';
     const result = await dialog.showSaveDialog(mainWindow, {
-      title: `Esporta Report DupFinder (${format.toUpperCase()})`,
-      defaultPath: `dupfinder-report.${ext}`,
+      title: `Esporta Report DUPLO (${format.toUpperCase()})`,
+      defaultPath: `duplo-report.${ext}`,
       filters: [{ name: format.toUpperCase(), extensions: [ext] }]
     });
 
