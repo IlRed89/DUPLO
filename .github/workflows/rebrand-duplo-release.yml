@@ -1,0 +1,26 @@
+name: Rebrand DUPLO release
+
+on:
+  push:
+    paths:
+      - ".github/workflows/rebrand-duplo-release.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: rebrand-duplo-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    name: Rinomina pagina Releases
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Titolo, note, asset e README in DUPLO
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/rebrand-github-release.sh
