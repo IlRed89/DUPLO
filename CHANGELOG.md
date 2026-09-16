@@ -24,11 +24,21 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 
 - Runtime hashing solo con `crypto` nativo Node.js (niente FFmpeg).
 - Dipendenza runtime unica: `electron-log`. `electron` / `electron-builder` restano `devDependencies`.
+- Code audit e snellimento dei sorgenti (Main, Preload, Renderer, CSS): JSDoc capillare, commenti sul *perché* (hash a due step, fuzzy, contatore anti-flicker, splitter, path/permessi OS), utility `formatBytes` unificata tra export CSV e statistiche UI.
+
+### Fixed
+
+- Gli stream di hashing (`fs.createReadStream`) chiudono e `destroy()` il descriptor su `error`, `end` e `close`, per evitare file lockati su Windows (EBUSY).
+- Input vuoti (path, cartelle, date non impostate) intercettati a monte: niente `UnhandledPromiseRejection` su IPC `scan:start` / hash / delete. Un path di soli spazi non viene più risolto come directory corrente (`path.resolve('')`).
+- Dopo il raggruppamento preliminare l'array piatto dei file candidati viene rilasciato: in RAM restano solo i bucket con ≥ 2 elementi.
+- IPC request/response su `ipcMain.handle` + `invoke` (lingua inclusa). Restano push Main→Renderer solo `scan:progress` e `menu:open-guide`; `log:renderer` resta fire-and-forget.
 
 ### Removed
 
 - Transcodifica media / binari FFmpeg.
 - Vincolo di drop al solo riquadro tratteggiato in sidebar.
+- Canali IPC morti `file:move` e `open-file-location` (duplicato di `shell:show-item`).
+- Classi CSS non referenziate (`.folder-list.is-drop-target`, `.group-hash`, `.file-actions`) e classe HTML residua `folder-dropzone`.
 
 [Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.0.0
