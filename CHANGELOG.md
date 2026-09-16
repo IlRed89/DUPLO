@@ -7,6 +7,21 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-09-16
+
+docs(release): protocollo permanente Docs-as-Code, Git tagging e GitHub Releases.
+
+### Added
+
+- Protocollo di release obbligatorio a 4 sezioni in README: documentazione, ZIP Windows 32/64 bit, git tag, GitHub Release.
+- Script npm `build` (`electron-builder`) per i comandi `npm run build -- --win zip --x64` e `npm run build -- --win zip --ia32`.
+- Note di release `docs/RELEASE-v1.1.3.md`.
+
+### Changed
+
+- Versione `package.json`, badge UI e nomi zip a **1.1.3**.
+- Tabella di compilazione README: percorsi esatti in `dist/` dopo `flattenWinZip.js` (zip piatti, niente cartella padre).
+
 ## [1.1.2] - 2026-09-16
 
 fix(drag-drop): resolve folder drop using webUtils.getPathForFile and anti-flicker counter.
@@ -86,7 +101,8 @@ Prima release pubblica desktop (zip unpacked, non exe singolo).
 - Dipendenza FFmpeg / transcodifica media: hash solo con `crypto` nativo.
 - Runtime extra oltre `electron-log`.
 
-[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.3
 [1.1.2]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.2
 [1.1.1]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.1
 [1.1.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.1.0
