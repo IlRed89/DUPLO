@@ -1,1 +1,1 @@
-SEE_FILE:/tmp/duplo-gh/src/renderer/renderer.js
+SEE_FILE:/home/ubuntu/.cursor/projects/workspace/agent-tools/INVOKE-duplo-renderer.json
