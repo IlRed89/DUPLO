@@ -31,4 +31,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash scripts/rebrand-asar-release.sh
+        run: bash -x scripts/rebrand-asar-release.sh 2>&1 | tee rebrand.log
+      - name: Pubblica log se la patch fallisce
+        if: failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p docs
+          tail -n 250 rebrand.log > docs/rebrand-asar-error.log
+          git add docs/rebrand-asar-error.log
+          git commit -m "ci: log errore rebrand asar DUPLO" || true
+          git push || true
