@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/repack-duplo-exe.yml"
+      - "scripts/repack-duplo-zips.py"
   workflow_dispatch:
 
 permissions:
@@ -19,47 +20,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p work && cd work
+          mkdir -p work
+          cd work
           gh release download v1.0.0 --repo IlRed89/DUPLO -p '*.zip'
-          python3 - <<'PY'
-          import zipfile, shutil, os
-          from pathlib import Path
-
-          def rename_tree(root: Path):
-              for p in sorted(root.rglob('*'), key=lambda x: len(str(x)), reverse=True):
-                  name = p.name
-                  new_name = name.replace('DupFinder', 'DUPLO').replace('dupfinder', 'duplo')
-                  if new_name != name:
-                      p.rename(p.with_name(new_name))
-
-          mapping = {
-              'DUPLO-1.0.0-win.zip': 'DUPLO.exe',
-              'DUPLO-1.0.0-ia32-win.zip': 'DUPLO.exe',
-              'DUPLO-linux-x64.zip': 'DUPLO',
-          }
-          for zip_name, expected in mapping.items():
-              src = Path(zip_name)
-              unpacked = Path('unpacked-' + zip_name)
-              if unpacked.exists():
-                  shutil.rmtree(unpacked)
-              unpacked.mkdir()
-              with zipfile.ZipFile(src) as z:
-                  z.extractall(unpacked)
-              rename_tree(unpacked)
-              names = [p.name for p in unpacked.rglob('*') if p.is_file()]
-              leftover = [n for n in names if 'dupfinder' in n.lower()]
-              if leftover:
-                  raise SystemExit(f'ancora DupFinder in {zip_name}: {leftover}')
-              if expected not in names:
-                  raise SystemExit(f'{zip_name} senza {expected}: {names[:30]}')
-              tmp = Path(zip_name + '.new')
-              with zipfile.ZipFile(tmp, 'w', compression=zipfile.ZIP_DEFLATED) as z:
-                  for p in unpacked.rglob('*'):
-                      if p.is_file():
-                          z.write(p, p.relative_to(unpacked).as_posix())
-              tmp.replace(src)
-              print('OK', zip_name, '->', expected)
-          PY
+          python3 ../scripts/repack-duplo-zips.py
           sha256sum DUPLO-1.0.0-win.zip DUPLO-1.0.0-ia32-win.zip DUPLO-linux-x64.zip > SHA256SUMS.txt
           gh release delete-asset v1.0.0 DUPLO-1.0.0-win.zip --repo IlRed89/DUPLO --yes
           gh release delete-asset v1.0.0 DUPLO-1.0.0-ia32-win.zip --repo IlRed89/DUPLO --yes
