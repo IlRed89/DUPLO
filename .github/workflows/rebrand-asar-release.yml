@@ -34,4 +34,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          HOUSEKEEPING: "1"
+          RECREATE_DEST: "1"
+          SOURCE_TAG: "auto"
         run: bash scripts/rebrand-asar-release.sh

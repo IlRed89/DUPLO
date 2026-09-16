@@ -14,8 +14,16 @@ const { writeFlatZip, unpackedDirForZip } = require('../scripts/flattenWinZip');
 
 test('unpackedDirForZip sceglie win-unpacked o win-ia32-unpacked dal nome zip', () => {
   assert.equal(
+    unpackedDirForZip('/out/DUPLO-1.0.0-win-ia32.zip', '/out'),
+    path.join('/out', 'win-ia32-unpacked')
+  );
+  assert.equal(
     unpackedDirForZip('/out/DUPLO-1.0.0-ia32-win.zip', '/out'),
     path.join('/out', 'win-ia32-unpacked')
+  );
+  assert.equal(
+    unpackedDirForZip('/out/DUPLO-1.0.0-win-x64.zip', '/out'),
+    path.join('/out', 'win-unpacked')
   );
   assert.equal(
     unpackedDirForZip('/out/DUPLO-1.0.0-win.zip', '/out'),
