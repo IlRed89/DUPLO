@@ -1,8 +1,16 @@
 name: Rebrand asar DUPLO negli zip
 
-# Temporaneamente solo manuale, per caricare i sorgenti v1.1.0
-# senza far partire l'overlay a metà commit.
 on:
+  push:
+    paths:
+      - ".github/workflows/rebrand-asar-release.yml"
+      - "scripts/rebrand-asar-release.sh"
+      - "main.js"
+      - "preload.js"
+      - "package.json"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "src/**"
   workflow_dispatch:
 
 concurrency:
