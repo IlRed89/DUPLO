@@ -13,7 +13,7 @@ const { markdownToHtml } = require('./renderer/markdown');
 test('README.md del progetto è trovato e contiene le sezioni del manuale', () => {
   const loaded = loadReadme();
   assert.ok(loaded.path.endsWith('README.md'));
-  assert.match(loaded.content, /# DupFinder/);
+  assert.match(loaded.content, /# DUPLO/);
   assert.match(loaded.content, /## Avvio/);
   assert.match(loaded.content, /## Flusso consigliato/);
   assert.match(loaded.content, /Pulizia Rapida/);
@@ -30,7 +30,7 @@ test('README.md del progetto è trovato e contiene le sezioni del manuale', () =
 });
 
 test('resolveReadmePath preferisce extraResources quando il file esiste', () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dupfinder-readme-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'duplo-readme-'));
   const packaged = path.join(tmp, 'README.md');
   fs.writeFileSync(packaged, '# Pacchetto\n');
   const found = resolveReadmePath({ resourcesPath: tmp, packaged: true });

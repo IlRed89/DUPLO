@@ -7,7 +7,7 @@ const os = require('os');
 const { filterDirectoryPaths } = require('./dropFilter');
 
 test('filterDirectoryPaths tiene solo le directory e scarta i file', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-drop-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-drop-'));
   const nested = path.join(tmpDir, 'cartella');
   const filePath = path.join(tmpDir, 'file.txt');
   await fsp.mkdir(nested);

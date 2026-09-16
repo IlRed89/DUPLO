@@ -14,22 +14,22 @@ const { writeFlatZip, unpackedDirForZip } = require('../scripts/flattenWinZip');
 
 test('unpackedDirForZip sceglie win-unpacked o win-ia32-unpacked dal nome zip', () => {
   assert.equal(
-    unpackedDirForZip('/out/DupFinder-1.0.0-ia32-win.zip', '/out'),
+    unpackedDirForZip('/out/DUPLO-1.0.0-ia32-win.zip', '/out'),
     path.join('/out', 'win-ia32-unpacked')
   );
   assert.equal(
-    unpackedDirForZip('/out/DupFinder-1.0.0-win.zip', '/out'),
+    unpackedDirForZip('/out/DUPLO-1.0.0-win.zip', '/out'),
     path.join('/out', 'win-unpacked')
   );
 });
 
 test('writeFlatZip mette i file in radice senza cartella padre', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-flatzip-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-flatzip-'));
   const unpacked = path.join(tmp, 'win-unpacked');
   await fsp.mkdir(unpacked, { recursive: true });
-  await fsp.writeFile(path.join(unpacked, 'DupFinder.exe'), 'fake-exe');
+  await fsp.writeFile(path.join(unpacked, 'DUPLO.exe'), 'fake-exe');
   await fsp.writeFile(path.join(unpacked, 'ffmpeg.dll'), 'fake-dll');
-  const zipPath = path.join(tmp, 'DupFinder-1.0.0-win.zip');
+  const zipPath = path.join(tmp, 'DUPLO-1.0.0-win.zip');
 
   await writeFlatZip(unpacked, zipPath);
   assert.ok(fs.existsSync(zipPath));
@@ -40,9 +40,9 @@ test('writeFlatZip mette i file in radice senza cartella padre', async () => {
   });
   assert.equal(listed.status, 0, listed.stderr);
   const names = listed.stdout.split(/\r?\n/).filter(Boolean);
-  assert.ok(names.includes('DupFinder.exe'), `entries=${names.join(',')}`);
+  assert.ok(names.includes('DUPLO.exe'), `entries=${names.join(',')}`);
   assert.ok(names.includes('ffmpeg.dll'));
-  assert.ok(names.every((n) => !n.startsWith('win-unpacked/') && !n.startsWith('DupFinder-1.0.0-win/')));
+  assert.ok(names.every((n) => !n.startsWith('win-unpacked/') && !n.startsWith('DUPLO-1.0.0-win/')));
 
   await fsp.rm(tmp, { recursive: true, force: true });
 });

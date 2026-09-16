@@ -1,6 +1,6 @@
 /**
  * @file scanner.test.js
- * @description Suite di test unitari per validare il motore di scansione e hashing di DupFinder.
+ * @description Suite di test unitari per validare il motore di scansione e hashing di DUPLO.
  */
 
 const test = require('node:test');
@@ -14,12 +14,12 @@ const { findDuplicates, ScanCancellationToken } = require('./scanner');
 const { getCategoryExtensions } = require('./fileCategories');
 
 test('Hasher: calcolo corretto di partial hash e full hash su file identici', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-test-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-test-'));
   const file1 = path.join(tmpDir, 'test1.txt');
   const file2 = path.join(tmpDir, 'test2.txt');
   const file3 = path.join(tmpDir, 'test3.txt');
 
-  const contentIdentical = 'Contenuto identico per il test di calcolo hash di DupFinder! '.repeat(200);
+  const contentIdentical = 'Contenuto identico per il test di calcolo hash di DUPLO! '.repeat(200);
   const contentDifferent = 'Contenuto completamente diverso e univoco.';
 
   await fsp.writeFile(file1, contentIdentical);
@@ -37,7 +37,7 @@ test('Hasher: calcolo corretto di partial hash e full hash su file identici', as
 });
 
 test('Scanner: identificazione corretta di duplicati con filtri multipli e criteri hash a due step', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-scan-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-scan-'));
   const subDir = path.join(tmpDir, 'subfolder');
   await fsp.mkdir(subDir, { recursive: true });
 
@@ -75,7 +75,7 @@ test('Scanner: identificazione corretta di duplicati con filtri multipli e crite
 });
 
 test('Scanner: la categoria Documenti include solo le estensioni hardcoded', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-cat-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-cat-'));
   const same = 'stesso contenuto per filtro categoria. '.repeat(40);
   await fsp.writeFile(path.join(tmpDir, 'a.txt'), same);
   await fsp.writeFile(path.join(tmpDir, 'b.txt'), same);
@@ -104,7 +104,7 @@ test('Scanner: la categoria Documenti include solo le estensioni hardcoded', asy
 });
 
 test('Scanner: formato esatto e range dimensione scartano i file fuori filtro', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-adv-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-adv-'));
   const same = 'payload identico per filtri avanzati. '.repeat(80);
   await fsp.writeFile(path.join(tmpDir, 'keep-a.csv'), same);
   await fsp.writeFile(path.join(tmpDir, 'keep-b.csv'), same);
@@ -138,7 +138,7 @@ test('Scanner: formato esatto e range dimensione scartano i file fuori filtro', 
 });
 
 test('Scanner: Nomi Simili raggruppa remix senza richiedere hash identico', async () => {
-  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'dupfinder-fuzzy-'));
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-fuzzy-'));
   await fsp.writeFile(path.join(tmpDir, 'Canzone.mp3'), 'audio-originale');
   await fsp.writeFile(path.join(tmpDir, 'Canzone (Remix).mp3'), 'audio-remix-diverso');
   await fsp.writeFile(path.join(tmpDir, 'Relazione-finale.pdf'), 'documento');
