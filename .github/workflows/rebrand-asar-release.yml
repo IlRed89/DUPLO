@@ -5,15 +5,11 @@ on:
     paths:
       - ".github/workflows/rebrand-asar-release.yml"
       - "scripts/rebrand-asar-release.sh"
-      - "main.js"
-      - "src/renderer/index.html"
-      - "src/logger.js"
-      - "package.json"
   workflow_dispatch:
 
 concurrency:
   group: rebrand-asar-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -31,14 +27,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: bash -x scripts/rebrand-asar-release.sh 2>&1 | tee rebrand.log
+        run: |
+          set -euxo pipefail
+          bash -x scripts/rebrand-asar-release.sh > rebrand.log 2>&1
+          status=$?
+          cat rebrand.log
+          exit $status
       - name: Pubblica log se la patch fallisce
         if: failure()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p docs
-          tail -n 250 rebrand.log > docs/rebrand-asar-error.log
+          tail -n 250 rebrand.log > docs/rebrand-asar-error.log || echo "nessun log" > docs/rebrand-asar-error.log
           git add docs/rebrand-asar-error.log
           git commit -m "ci: log errore rebrand asar DUPLO" || true
           git push || true
