@@ -9,34 +9,118 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 /**
- * Risolve il percorso filesystem di un `File` HTML5 droppato.
- * Da Electron 32+ `file.path` è deprecato/vuoto con `contextIsolation: true`:
- * serve `webUtils.getPathForFile(file)` **nel preload** (il File non attraversa IPC).
+ * Path catturati nel mondo isolato del preload (File nativo, non clonato).
+ * `contextBridge` clona gli argomenti: passare `File` dal Renderer a
+ * `getPathForFile` può restituire stringa vuota. Per questo il drop viene
+ * intercettato QUI, su `window`, prima che l'oggetto attraversi il ponte.
+ * @type {string[]}
+ */
+let lastNativeDropPaths = [];
+
+/**
+ * Percorso filesystem di un `File` HTML5. Da Electron 32+ `file.path` è
+ * vuoto con `contextIsolation`: serve `webUtils.getPathForFile(file)`.
  *
- * @param {File} file Oggetto File del DataTransfer (riferimento vivo dal Renderer).
- * @returns {string} Percorso assoluto, oppure stringa vuota.
+ * @param {File} file File del DataTransfer (riferimento vivo).
+ * @returns {string} Percorso assoluto, oppure ''.
  */
 function getPathForFileSafe(file) {
+  if (!file) return '';
   try {
-    if (!file) return '';
     if (webUtils && typeof webUtils.getPathForFile === 'function') {
       const nativePath = webUtils.getPathForFile(file);
-      if (typeof nativePath === 'string' && nativePath.length > 0) {
-        return nativePath;
-      }
+      if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
     }
   } catch (_err) {
-    /* webUtils assente o File non valido: fallback sotto */
+    /* File clonato o webUtils assente */
   }
   try {
-    if (file && typeof file.path === 'string' && file.path.length > 0) {
-      return file.path;
-    }
+    if (typeof file.path === 'string' && file.path.length > 0) return file.path;
   } catch (_err) {
     /* getter path bloccato */
   }
   return '';
 }
+
+/**
+ * Estrae i path nativi da `dataTransfer.files` e `dataTransfer.items`.
+ * Va chiamato in modo sincrono durante l'evento `drop` (la FileList svanisce).
+ *
+ * @param {DataTransfer|null|undefined} dataTransfer
+ * @returns {string[]}
+ */
+function extractPathsFromDataTransfer(dataTransfer) {
+  const paths = [];
+  const seen = new Set();
+
+  function pushFile(file) {
+    if (!file) return;
+    const nativePath = getPathForFileSafe(file);
+    if (!nativePath || seen.has(nativePath)) return;
+    seen.add(nativePath);
+    paths.push(nativePath);
+  }
+
+  try {
+    const files = dataTransfer && dataTransfer.files ? dataTransfer.files : null;
+    if (files && files.length) {
+      for (let i = 0; i < files.length; i += 1) pushFile(files[i]);
+    }
+  } catch (_err) { /* FileList illeggibile */ }
+
+  try {
+    const items = dataTransfer && dataTransfer.items ? dataTransfer.items : null;
+    if (items && items.length) {
+      for (let i = 0; i < items.length; i += 1) {
+        const item = items[i];
+        if (item && item.kind === 'file' && typeof item.getAsFile === 'function') {
+          pushFile(item.getAsFile());
+        }
+      }
+    }
+  } catch (_err) { /* items illeggibile */ }
+
+  return paths;
+}
+
+function logPreloadDrop(level, message) {
+  try {
+    ipcRenderer.send('log:renderer', { level: level || 'info', message: String(message) });
+  } catch (_err) { /* logger non pronto */ }
+}
+
+/**
+ * Intercetta dragover/drop nel mondo isolato: preventDefault (senza
+ * stopPropagation sul dragover: in Chromium bloccherebbe il drop) e
+ * cattura i path con webUtils sul File nativo.
+ */
+function armIsolatedWorldDropCapture() {
+  const opts = { capture: true };
+
+  function allowDrop(event) {
+    try {
+      event.preventDefault();
+      if (event.dataTransfer) {
+        try { event.dataTransfer.dropEffect = 'copy'; } catch (_err) { /* ignore */ }
+      }
+    } catch (_err) { /* ignore */ }
+  }
+
+  window.addEventListener('dragenter', allowDrop, opts);
+  window.addEventListener('dragover', allowDrop, opts);
+  window.addEventListener('drop', (event) => {
+    allowDrop(event);
+    try {
+      lastNativeDropPaths = extractPathsFromDataTransfer(event.dataTransfer);
+      logPreloadDrop('info', `[Preload drop] catturati ${lastNativeDropPaths.length} path nativi (webUtils)`);
+    } catch (err) {
+      lastNativeDropPaths = [];
+      logPreloadDrop('error', `[Preload drop] estrazione path fallita: ${err && err.message}`);
+    }
+  }, opts);
+}
+
+armIsolatedWorldDropCapture();
 
 /**
  * Espone in modo sicuro i metodi e gli eventi IPC all'oggetto globale 'window.duploAPI'.
@@ -55,7 +139,26 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * @param {File} file
    * @returns {string}
    */
-  getPathForFile: (file) => getPathForFileSafe(file),
+  getPathForFile: (file) => {
+    try {
+      if (webUtils && typeof webUtils.getPathForFile === 'function') {
+        const nativePath = webUtils.getPathForFile(file);
+        if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
+      }
+    } catch (_err) { /* File clonato dal contextBridge */ }
+    return getPathForFileSafe(file);
+  },
+
+  /**
+   * Path catturati dal listener `drop` del preload (File nativo).
+   * Il Renderer li legge al drop e svuota lo stash.
+   * @returns {string[]}
+   */
+  consumeDroppedPaths: () => {
+    const copy = lastNativeDropPaths.slice();
+    lastNativeDropPaths = [];
+    return copy;
+  },
 
   /**
    * Verifica un singolo path droppato nel Main (`fs.promises.stat` + `isDirectory`).
@@ -95,7 +198,7 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * Sposta un file in una cartella di destinazione.
    * @param {string} sourcePath - Percorso del file da spostare
    * @param {string} destFolder - Cartella dove collocare il file
-   * @returns {Promise<{success: boolean, error?: string}>}
+   * @returns {Promise<{success: boolean, newPath?: string, error?: string}>}
    */
   moveFile: (sourcePath, destFolder) => ipcRenderer.invoke('file:move', { sourcePath, destFolder }),
 
@@ -197,6 +300,19 @@ contextBridge.exposeInMainWorld('duploAPI', {
  * Stesso helper di `window.duploAPI` (un solo ponte, due nomi).
  */
 contextBridge.exposeInMainWorld('api', {
-  getPathForFile: (file) => getPathForFileSafe(file),
+  getPathForFile: (file) => {
+    try {
+      if (webUtils && typeof webUtils.getPathForFile === 'function') {
+        const nativePath = webUtils.getPathForFile(file);
+        if (typeof nativePath === 'string' && nativePath.length > 0) return nativePath;
+      }
+    } catch (_err) { /* File clonato */ }
+    return getPathForFileSafe(file);
+  },
+  consumeDroppedPaths: () => {
+    const copy = lastNativeDropPaths.slice();
+    lastNativeDropPaths = [];
+    return copy;
+  },
   validateAndAddFolder: (folderPath) => ipcRenderer.invoke('validate-and-add-folder', folderPath)
 });
