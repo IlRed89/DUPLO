@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Sovrascrive app.asar negli zip della release v1.0.0 con il sorgente DUPLO
+# (titolo finestra, h1, menu, logger). Poi ritimbra ProductName sull'exe.
 set -euo pipefail
 
 REPO="${GITHUB_REPOSITORY:-IlRed89/DUPLO}"
@@ -8,21 +9,40 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORKDIR="$(mktemp -d)"
 TOOLS=""
 ASAR_BIN=""
-trap 'rm -rf "$WORKDIR" ${TOOLS:+"$TOOLS"}' EXIT
+cleanup() {
+  rm -rf "$WORKDIR"
+  if [[ -n "${TOOLS}" ]]; then
+    rm -rf "$TOOLS"
+  fi
+}
+trap cleanup EXIT
 
 cd "$ROOT"
 
 echo "== tool isolati (niente electron dal package.json) =="
 TOOLS="$(mktemp -d)"
+# Directory vuota: npm non deve leggere il package.json del repo (Electron).
+mkdir -p "$TOOLS"
+cat > "$TOOLS/package.json" <<'JSON'
+{"name":"duplo-rebrand-tools","private":true,"version":"1.0.0"}
+JSON
 npm install --prefix "$TOOLS" --no-fund --no-audit @electron/asar resedit
-ASAR_BIN="$TOOLS/node_modules/@electron/asar/bin/asar.js"
-if [[ ! -f "$ASAR_BIN" ]]; then
-  echo "asar.js non trovato in $TOOLS" >&2
-  find "$TOOLS" -name 'asar*' | head >&2
+
+# @electron/asar >= 4 espone bin/asar.mjs, non asar.js
+if [[ -f "$TOOLS/node_modules/.bin/asar" ]]; then
+  ASAR_BIN="$TOOLS/node_modules/.bin/asar"
+elif [[ -f "$TOOLS/node_modules/@electron/asar/bin/asar.mjs" ]]; then
+  ASAR_BIN="$TOOLS/node_modules/@electron/asar/bin/asar.mjs"
+elif [[ -f "$TOOLS/node_modules/@electron/asar/bin/asar.js" ]]; then
+  ASAR_BIN="$TOOLS/node_modules/@electron/asar/bin/asar.js"
+else
+  echo "asar CLI non trovato in $TOOLS" >&2
+  find "$TOOLS" -name 'asar*' -print >&2 || true
   exit 1
 fi
 export NODE_PATH="$TOOLS/node_modules${NODE_PATH:+:$NODE_PATH}"
 echo "ASAR_BIN=$ASAR_BIN"
+"$ASAR_BIN" --version || true
 
 stamp_exe() {
   local exe="$1"
@@ -68,7 +88,7 @@ overlay_asar() {
   local unpacked="$WORKDIR/asar-$(basename "$(dirname "$asar_path")")"
   rm -rf "$unpacked"
   mkdir -p "$unpacked"
-  node "$ASAR_BIN" extract "$asar_path" "$unpacked"
+  "$ASAR_BIN" extract "$asar_path" "$unpacked"
 
   cp -f "$ROOT/main.js" "$unpacked/main.js"
   cp -f "$ROOT/preload.js" "$unpacked/preload.js"
@@ -83,9 +103,13 @@ import os, sys
 root = sys.argv[1]
 skip_ext = {'.png', '.ico', '.icns', '.woff', '.woff2', '.ttf', '.bin', '.node', '.dll', '.exe', '.pak', '.dat'}
 count = 0
+leftover = []
 for dirpath, _, files in os.walk(root):
     for name in files:
         path = os.path.join(dirpath, name)
+        rel = os.path.relpath(path, root).replace('\\', '/')
+        if '/node_modules/' in '/' + rel + '/' or rel.startswith('node_modules/'):
+            continue
         ext = os.path.splitext(name)[1].lower()
         if ext in skip_ext:
             continue
@@ -107,25 +131,36 @@ for dirpath, _, files in os.walk(root):
         if new != text:
             open(path, 'w', encoding='utf-8', newline='\n').write(new)
             count += 1
+            text = new
+        if 'dupfinder' in text.lower():
+            leftover.append(rel)
 print(f'[rebrand] file testo aggiornati: {count}')
+if leftover:
+    print('ERRORE: DupFinder ancora presente nell asar:', file=sys.stderr)
+    print('\n'.join(leftover), file=sys.stderr)
+    sys.exit(1)
+# Controlli visibili all'utente (screenshot: titolo + h1)
+html_path = os.path.join(root, 'src', 'renderer', 'index.html')
+main_path = os.path.join(root, 'main.js')
+html = open(html_path, encoding='utf-8').read()
+main = open(main_path, encoding='utf-8').read()
+if 'DupFinder' in html or '<h1>DUPLO' not in html:
+    raise SystemExit('index.html non ha h1 DUPLO')
+if 'DupFinder' in main or 'DUPLO' not in main:
+    raise SystemExit('main.js non è rebrand DUPLO')
+print('[rebrand] verifica UI: titolo/h1 DUPLO ok')
 PY
 
-  leftover="$(grep -RIl -i 'dupfinder' "$unpacked" --include='*.js' --include='*.html' --include='*.json' --include='*.css' --include='*.md' | grep -v node_modules || true)"
-  if [[ -n "$leftover" ]]; then
-    echo "ERRORE: DupFinder ancora presente nell asar:" >&2
-    echo "$leftover" >&2
-    exit 1
-  fi
-
-  node "$ASAR_BIN" pack "$unpacked" "$asar_path"
+  "$ASAR_BIN" pack "$unpacked" "$asar_path"
   echo "[rebrand] asar riscritto: $asar_path"
 }
 
 rebrand_zip() {
   local asset="$1"
   local dest="$WORKDIR/out/$asset"
-  mkdir -p "$WORKDIR/out" "$WORKDIR/zips/$asset"
+  mkdir -p "$WORKDIR/out" "$WORKDIR/zips/$asset" "$WORKDIR/dl"
   echo "== download $asset =="
+  rm -f "$WORKDIR/dl/$asset"
   gh release download "$TAG" --repo "$REPO" --pattern "$asset" --dir "$WORKDIR/dl"
   python3 - "$WORKDIR/dl/$asset" "$WORKDIR/zips/$asset" <<'PY'
 import sys, zipfile
@@ -139,26 +174,27 @@ print('estratti', len(names), 'file')
 PY
 
   local asar
-  asar="$(find "$WORKDIR/zips/$asset" -name app.asar | head -n 1)"
+  asar="$(find "$WORKDIR/zips/$asset" -name app.asar | head -n 1 || true)"
   if [[ -z "$asar" ]]; then
     echo "app.asar non trovato in $asset" >&2
-    find "$WORKDIR/zips/$asset" -maxdepth 3 -type f | head >&2
+    find "$WORKDIR/zips/$asset" -maxdepth 4 -type f | head -n 40 >&2 || true
     exit 1
   fi
   overlay_asar "$asar"
 
   find "$WORKDIR/zips/$asset" -iname '*dupfinder*' -print || true
-  find "$WORKDIR/zips/$asset" \( -iname 'DUPLO.exe' -o -iname 'DupFinder.exe' \) -print | while read -r exe; do
+  while IFS= read -r exe; do
+    [[ -z "$exe" ]] && continue
     dir="$(dirname "$exe")"
     if [[ "$(basename "$exe")" != "DUPLO.exe" ]]; then
       mv -f "$exe" "$dir/DUPLO.exe"
       exe="$dir/DUPLO.exe"
     fi
     stamp_exe "$exe"
-  done
+  done < <(find "$WORKDIR/zips/$asset" \( -iname 'DUPLO.exe' -o -iname 'DupFinder.exe' \) -print)
 
   python3 - "$WORKDIR/zips/$asset" "$dest" <<'PY'
-import os, sys, zipfile
+import sys, zipfile
 from pathlib import Path
 root, out = Path(sys.argv[1]), Path(sys.argv[2])
 out.parent.mkdir(parents=True, exist_ok=True)
@@ -190,6 +226,7 @@ PY
 (
   cd "$WORKDIR/out"
   sha256sum DUPLO-1.0.0-win.zip DUPLO-1.0.0-ia32-win.zip DUPLO-linux-x64.zip > SHA256SUMS.txt
+  cat SHA256SUMS.txt
 )
 
 existing="$(gh api "/repos/${REPO}/releases/tags/${TAG}" --jq '.assets[].name')"
