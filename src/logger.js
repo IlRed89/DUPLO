@@ -25,6 +25,22 @@ log.transports.console.level = 'debug';
 // Limite massimo di dimensione per ogni file di log prima della rotazione automatica (5 MB)
 log.transports.file.maxSize = 5 * 1024 * 1024;
 
+try {
+  log.transports.file.resolvePathFn = () => {
+    try {
+      const { app } = require('electron');
+      const userData = app && typeof app.getPath === 'function'
+        ? app.getPath('userData')
+        : path.join(os.homedir(), 'DUPLO');
+      return path.join(userData, 'logs', 'main.log');
+    } catch (_err) {
+      return path.join(os.homedir(), 'DUPLO', 'logs', 'main.log');
+    }
+  };
+} catch (_err) {
+  /* electron-log senza resolvePathFn: resta il default */
+}
+
 /**
  * Restituisce il percorso assoluto del file di log corrente sul sistema operativo ospite.
  * Utile sia per scopi di debug sia per esporre la posizione dei log all'utente nell'interfaccia.
@@ -38,7 +54,7 @@ function getLogFilePath() {
       return fileTransport.getFile().path;
     }
     // Fallback calcolato manualmente nel caso l'app non sia ancora del tutto inizializzata
-    return path.join(os.homedir(), '.duplo', 'logs', 'main.log');
+    return path.join(os.homedir(), 'DUPLO', 'logs', 'main.log');
   } catch (err) {
     console.error('Errore durante il recupero del percorso del file di log:', err);
     return '';
@@ -51,7 +67,7 @@ function getLogFilePath() {
  */
 function logSystemInfo() {
   log.info('======================================================');
-  log.info(' DUPLO - Avvio Sessione di Esecuzione');
+  log.info(' Avvio DUPLO in corso...');
   log.info('======================================================');
   log.info(`Piattaforma:       ${process.platform} (${os.type()} ${os.release()})`);
   log.info(`Architettura CPU:  ${process.arch}`);
