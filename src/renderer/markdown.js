@@ -1,5 +1,5 @@
 /**
- * Convertitore Markdown → HTML sufficiente per il README di DupFinder.
+ * Convertitore Markdown → HTML sufficiente per il README di DUPLO.
  * Funziona sia nel renderer (script tag) sia nei test Node (module.exports).
  */
 (function (root, factory) {
@@ -7,7 +7,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = api;
   }
-  root.DupFinderMarkdown = api;
+  root.DuploMarkdown = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   function escapeHtml(str) {
     return String(str)

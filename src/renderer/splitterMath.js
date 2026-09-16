@@ -8,7 +8,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = api;
   }
-  root.DupFinderSplitterMath = api;
+  root.DuploSplitterMath = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const MIN_SIDEBAR_PX = 280;
   const MIN_MAIN_PX = 320;
