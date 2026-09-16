@@ -1,0 +1,34 @@
+name: Rebrand asar DUPLO negli zip
+
+on:
+  push:
+    paths:
+      - ".github/workflows/rebrand-asar-release.yml"
+      - "scripts/rebrand-asar-release.sh"
+      - "main.js"
+      - "src/renderer/index.html"
+      - "src/logger.js"
+      - "package.json"
+  workflow_dispatch:
+
+concurrency:
+  group: rebrand-asar-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  rebrand:
+    name: Sovrascrivi asar e ritimbra DUPLO.exe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Patch asar + upload release v1.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/rebrand-asar-release.sh
