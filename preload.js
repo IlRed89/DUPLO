@@ -6,7 +6,37 @@
  * e bloccando l'accesso diretto ai moduli nativi di Node.js.
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+
+/**
+ * Risolve il percorso filesystem di un `File` HTML5 droppato.
+ * Da Electron 32+ `file.path` è deprecato/vuoto con `contextIsolation: true`:
+ * serve `webUtils.getPathForFile(file)` **nel preload** (il File non attraversa IPC).
+ *
+ * @param {File} file Oggetto File del DataTransfer (riferimento vivo dal Renderer).
+ * @returns {string} Percorso assoluto, oppure stringa vuota.
+ */
+function getPathForFileSafe(file) {
+  try {
+    if (!file) return '';
+    if (webUtils && typeof webUtils.getPathForFile === 'function') {
+      const nativePath = webUtils.getPathForFile(file);
+      if (typeof nativePath === 'string' && nativePath.length > 0) {
+        return nativePath;
+      }
+    }
+  } catch (_err) {
+    /* webUtils assente o File non valido: fallback sotto */
+  }
+  try {
+    if (file && typeof file.path === 'string' && file.path.length > 0) {
+      return file.path;
+    }
+  } catch (_err) {
+    /* getter path bloccato */
+  }
+  return '';
+}
 
 /**
  * Espone in modo sicuro i metodi e gli eventi IPC all'oggetto globale 'window.duploAPI'.
@@ -17,6 +47,22 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * @returns {Promise<string|null>} Percorso della cartella selezionata o null se annullato
    */
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
+
+  /**
+   * Percorso nativo di un File droppato (`webUtils.getPathForFile`).
+   * Da chiamare nel Renderer come `window.duploAPI.getPathForFile(file)`
+   * (alias richiesto: `window.api.getPathForFile`).
+   * @param {File} file
+   * @returns {string}
+   */
+  getPathForFile: (file) => getPathForFileSafe(file),
+
+  /**
+   * Verifica un singolo path droppato nel Main (`fs.promises.stat` + `isDirectory`).
+   * @param {string} folderPath
+   * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>}
+   */
+  validateAndAddFolder: (folderPath) => ipcRenderer.invoke('validate-and-add-folder', folderPath),
 
   /**
    * Verifica quali path droppati sono cartelle (stat nel Main Process).
@@ -144,4 +190,13 @@ contextBridge.exposeInMainWorld('duploAPI', {
       ipcRenderer.removeListener('scan:progress', subscription);
     };
   }
+});
+
+/**
+ * Alias richiesto dal contratto drop: `window.api.getPathForFile(file)`.
+ * Stesso helper di `window.duploAPI` (un solo ponte, due nomi).
+ */
+contextBridge.exposeInMainWorld('api', {
+  getPathForFile: (file) => getPathForFileSafe(file),
+  validateAndAddFolder: (folderPath) => ipcRenderer.invoke('validate-and-add-folder', folderPath)
 });
