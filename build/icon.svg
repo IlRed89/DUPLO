@@ -69,7 +69,7 @@
     <rect x="184" y="292" width="80" height="10" rx="5" fill="#ffffff" opacity="0.8" />
   </g>
 
-  <!-- BADGE \"MATCH\" = icona di uguaglianza per simboleggiare i duplicati -->
+  <!-- BADGE "MATCH" = icona di uguaglianza per simboleggiare i duplicati -->
   <g filter="url(#dropShadow)">
     <circle cx="210" cy="340" r="26" fill="#10b981" />
     <rect x="198" y="332" width="24" height="5" rx="2.5" fill="#ffffff" />
