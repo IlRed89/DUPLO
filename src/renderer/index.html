@@ -9,13 +9,21 @@
 </head>
 <body>
 
+  <!-- Overlay drop full-window (Fase 10.0): nascosto di default, classe .active al drag. -->
+  <div id="drag-overlay" class="drag-overlay" aria-hidden="true">
+    <div class="drag-overlay-panel" role="status" aria-live="polite">
+      <p class="drag-overlay-title">Trascina qui le cartelle</p>
+      <p class="drag-overlay-hint">Rilascia ovunque nella finestra per aggiungerle alla scansione</p>
+    </div>
+  </div>
+
   <!-- Header Superiore dell'Applicazione -->
   <header class="app-header">
     <div class="brand">
       <!-- Icona Fase 1: stesso SVG in build/icon.svg, incorporato (nessun download). -->
       <img class="brand-icon" src="../../build/icon.svg" width="36" height="36" alt="DUPLO">
       <div class="brand-text">
-        <h1>DUPLO <span class="badge">v1.0.0</span></h1>
+        <h1>DUPLO <span class="badge">v1.1.0</span></h1>
         <p>Ricerca e pulizia sicura di file duplicati</p>
       </div>
     </div>
@@ -49,7 +57,7 @@
           <span id="folderCountBadge" style="font-weight: normal; color: var(--text-dim);">(0)</span>
         </div>
         <div class="folder-list folder-dropzone" id="folderListContainer">
-          <div class="empty-folders-hint">Nessuna cartella selezionata<br><span class="drop-hint">Trascina qui una o più cartelle da Esplora file</span></div>
+          <div class="empty-folders-hint">Nessuna cartella selezionata<br><span class="drop-hint">Trascina le cartelle ovunque nella finestra, o usa Aggiungi Cartella</span></div>
         </div>
         <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
           <button class="btn btn-secondary btn-sm" id="btnAddFolder" style="flex: 1;">
