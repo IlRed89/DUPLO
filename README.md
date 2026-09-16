@@ -1,6 +1,6 @@
 # DUPLO — Manuale d'uso
 
-**Versione 1.1.3** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
+**Versione 1.1.4** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md) · Release: [github.com/IlRed89/DUPLO/releases](https://github.com/IlRed89/DUPLO/releases)
 
@@ -29,7 +29,7 @@ Indice:
 
 DUPLO **non è un unico exe portatile**: la release contiene una **cartella** con l'eseguibile e i file di runtime (dll, pak, risorse). Devi estrarre tutto lo zip e avviare `DUPLO.exe` **dalla stessa cartella**. Se sposti solo l'exe, l'app non parte.
 
-1. Scarica `DUPLO-1.1.3-win.zip` (64-bit) o `DUPLO-1.1.3-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
+1. Scarica `DUPLO-1.1.4-win.zip` (64-bit) o `DUPLO-1.1.4-ia32-win.zip` (32-bit) dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest).
 2. Estrai lo zip in una cartella tua (Desktop, Programmi, USB…).
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows SmartScreen**, leggi il riquadro [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice) qui sotto.
@@ -40,10 +40,10 @@ Lo zip Windows è **piatto**: dopo l’estrazione trovi `DUPLO.exe` e le `.dll` 
 
 | Piattaforma | Architettura | Artefatto della release | Supporto |
 |---|---|---|---|
-| Windows 10 / 11 | **x64 (64-bit)** | `DUPLO-1.1.3-win.zip` | Sì |
-| Windows 10 / 11 | **x86 (32-bit / ia32)** | `DUPLO-1.1.3-ia32-win.zip` | Sì |
+| Windows 10 / 11 | **x64 (64-bit)** | `DUPLO-1.1.4-win.zip` | Sì |
+| Windows 10 / 11 | **x86 (32-bit / ia32)** | `DUPLO-1.1.4-ia32-win.zip` | Sì |
 | Windows ARM64 | arm64 | — | Non in questa release |
-| Linux | x64 | `DUPLO-1.1.3-linux-x64.zip` | Sì |
+| Linux | x64 | `DUPLO-1.1.4-linux-x64.zip` | Sì |
 | Linux | x86 32-bit | — | No (Electron 33 non pubblica runtime ia32) |
 | macOS | — | build locale `npm run dist:mac` | Solo compilazione su Mac |
 
@@ -366,7 +366,7 @@ npm start
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
 | `npm run build -- --win zip --x64` | ZIP Windows 64-bit piatto in `dist/` (`DUPLO-<versione>-win-x64.zip`, poi riarrotato da `flattenWinZip.js`) |
 | `npm run build -- --win zip --ia32` | ZIP Windows 32-bit piatto in `dist/` (`DUPLO-<versione>-win-ia32.zip`) |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.1.3-win.zip` / `DUPLO-1.1.3-ia32-win.zip` dopo overlay CI, o i nomi electron-builder in `dist/`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.1.4-win.zip` / `DUPLO-1.1.4-ia32-win.zip` dopo overlay CI, o i nomi electron-builder in `dist/`) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
@@ -393,7 +393,7 @@ Ogni modifica, funzione, bugfix o chiusura issue **non è completa** finché non
 - JSDoc + log su ogni canale IPC o metodo nuovo. Badge UI (`src/renderer/index.html`) allineato a `vX.Y.Z`.
 - Note di release in `docs/RELEASE-vX.Y.Z.md` (usate dalla pipeline overlay).
 
-Identità prodotto: **DUPLO** (`productName` / `executableName` / titolo / Task Manager). Non reintrodurre DupFinder nel codice dell’app.
+Identità prodotto: **DUPLO** (`name` / `productName` / `executableName` / `app.setName` / titolo finestra / Task Manager).
 
 ### 2. Preparazione degli asset ZIP (32/64 bit, senza cartelle intermedie)
 
@@ -415,9 +415,9 @@ File pronti in `dist/`:
 
 Sulla GitHub Release i nomi pubblicati dalla pipeline overlay sono piatti e versionati:
 
-- `DUPLO-1.1.3-win.zip` (Windows 64-bit)
-- `DUPLO-1.1.3-ia32-win.zip` (Windows 32-bit)
-- `DUPLO-1.1.3-linux-x64.zip` (Linux 64-bit)
+- `DUPLO-1.1.4-win.zip` (Windows 64-bit)
+- `DUPLO-1.1.4-ia32-win.zip` (Windows 32-bit)
+- `DUPLO-1.1.4-linux-x64.zip` (Linux 64-bit)
 - `SHA256SUMS.txt`
 
 Non sovrascrivere mai il tag `v1.0.0` (runtime di base della pipeline overlay).
@@ -440,10 +440,10 @@ Esempio per questa versione:
 ```bash
 git status
 git add .
-git commit -m "docs(release): protocollo permanente Docs-as-Code Git e GitHub Releases"
-git tag -a v1.1.3 -m "Release v1.1.3: protocollo permanente Docs, Git e GitHub Releases"
+git commit -m "chore(branding): allinea identità prodotto a DUPLO 1.1.4"
+git tag -a v1.1.4 -m "Release v1.1.4: identità prodotto DUPLO su ogni file"
 git push origin main
-git push origin v1.1.3
+git push origin v1.1.4
 ```
 
 ### 4. GitHub Release
