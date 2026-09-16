@@ -1,5 +1,6 @@
 {
   "name": "duplo",
+  "productName": "DUPLO",
   "version": "1.0.0",
   "description": "DUPLO — tool desktop per trovare e pulire file duplicati (Electron, hash SHA-256/MD5).",
   "main": "main.js",
@@ -30,7 +31,12 @@
   "build": {
     "appId": "com.fabiorossi.duplo",
     "productName": "DUPLO",
+    "executableName": "DUPLO",
     "copyright": "Copyright © 2026 Fabio Rossi",
+    "extraMetadata": {
+      "name": "duplo",
+      "productName": "DUPLO"
+    },
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -67,6 +73,7 @@
         }
       ],
       "icon": "build/icon.ico",
+      "executableName": "DUPLO",
       "signAndEditExecutable": false,
       "certificateFile": "${env.WIN_CSC_FILE}",
       "certificatePassword": "${env.WIN_CSC_PASSWORD}",
