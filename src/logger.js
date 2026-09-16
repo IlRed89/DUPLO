@@ -62,8 +62,8 @@ function getLogFilePath() {
 }
 
 /**
- * Funzione helper per registrare informazioni di contesto sul sistema operativo all'avvio.
- * Registra piattaforma, release del kernel, architettura CPU, versione Node ed Electron.
+ * Registra piattaforma, kernel, architettura, versioni Node/Electron all'avvio.
+ * @returns {void}
  */
 function logSystemInfo() {
   log.info('======================================================');

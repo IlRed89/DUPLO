@@ -1,119 +1,186 @@
 /**
  * @file hasher.js
- * @description Modulo per il calcolo crittografico e asincrono degli hash dei file.
- * Implementa una strategia a due stadi ad alte prestazioni:
- * 
- * 1. HASH DEL CHUNK INIZIALE (Partial Hash):
- *    Legge solo i primi N byte (default 1MB) del file per escludere file che hanno
- *    la stessa dimensione ma contenuti iniziali differenti, riducendo drasticamente
- *    le operazioni di I/O su dischi lenti o su file giganti.
- * 
- * 2. HASH COMPLETO (Full Hash):
- *    Viene calcolato solo e soltanto se i chunk iniziali coincidono, leggendo
- *    l'intero file tramite stream asincrono a blocchi per non saturare la memoria RAM.
+ * @description Calcolo asincrono degli hash dei file con `crypto` nativo Node.js.
+ *
+ * Strategia a due stadi, usata da `scanner.js`:
+ * 1. Hash parziale dei primi N byte (default 1 MiB): scarta in fretta file
+ *    della stessa dimensione ma con testa diversa, evitando di leggere GB.
+ * 2. Hash completo a stream da 64 KiB: solo se i chunk iniziali coincidono.
+ *    Lo stream non carica mai l'intero file in RAM.
+ *
+ * Su Windows un ReadStream lasciato aperto tiene un file descriptor e può
+ * bloccare `unlink` (EBUSY). Ogni Promise chiude e `destroy()` lo stream
+ * sia in caso di successo sia di errore.
  */
 
+'use strict';
+
 const fs = require('fs');
-// Solo crypto nativo Node.js: nessun binario esterno per gli hash.
 const crypto = require('crypto');
 const { logger } = require('./logger');
 
-/**
- * Dimensione predefinita del chunk iniziale per il pre-confronto rapido: 1 MegaByte (1024 * 1024 byte).
- * @constant {number}
- */
+/** Dimensione del pre-hash: 1 MiB (1024 * 1024 byte). */
 const DEFAULT_CHUNK_SIZE = 1024 * 1024;
 
 /**
- * Calcola l'hash parziale dei primi byte di un file specificato.
- * 
- * @param {string} filePath - Percorso assoluto del file da analizzare
- * @param {string} [algorithm='sha256'] - Algoritmo crittografico da usare ('sha256' o 'md5')
- * @param {number} [chunkSize=DEFAULT_CHUNK_SIZE] - Numero di byte da leggere dalla testa del file
- * @returns {Promise<string>} Stringa esadecimale dell'hash calcolato
+ * Normalizza l'algoritmo richiesto dall'UI.
+ * Qualsiasi valore diverso da `md5` diventa `sha256` (default sicuro).
+ *
+ * @param {unknown} algorithm
+ * @returns {'sha256'|'md5'}
  */
-async function computePartialHash(filePath, algorithm = 'sha256', chunkSize = DEFAULT_CHUNK_SIZE) {
-  return new Promise((resolve, reject) => {
-    try {
-    logger.debug(`[Hasher] Inizio calcolo hash parziale (${algorithm}, chunk: ${chunkSize} byte) per: "${filePath}"`);
-    
-    // Validazione dell'algoritmo crittografico supportato (sha256 o md5 via crypto)
-    const validAlgo = (algorithm.toLowerCase() === 'md5') ? 'md5' : 'sha256';
-    const hash = crypto.createHash(validAlgo);
-
-    // Apertura di uno stream limitato ai primi chunkSize byte (start 0, end chunkSize - 1)
-    const stream = fs.createReadStream(filePath, { start: 0, end: chunkSize - 1 });
-
-    stream.on('data', (chunk) => {
-      hash.update(chunk);
-    });
-
-    stream.on('end', () => {
-      const digest = hash.digest('hex');
-      logger.debug(`[Hasher] Hash parziale completato per "${filePath}": ${digest.substring(0, 16)}...`);
-      resolve(digest);
-    });
-
-    stream.on('error', (err) => {
-      // Traccia l'errore dettagliatamente per la diagnosi (es. permessi o file bloccato)
-      logger.warn(`[Hasher] Errore lettura hash parziale per "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
-      reject(err);
-    });
-    } catch (err) {
-      logger.warn(`[Hasher] computePartialHash interrotto per "${filePath}": ${err.message}`);
-      reject(err);
-    }
-  });
+function normalizeAlgorithm(algorithm) {
+  return String(algorithm || 'sha256').toLowerCase() === 'md5' ? 'md5' : 'sha256';
 }
 
 /**
- * Calcola l'hash integrale dell'intero file tramite stream asincrono a blocchi da 64KB.
- * Questa funzione non carica mai l'intero file in memoria, consentendo l'hashing sicuro di file di qualsiasi dimensione (anche molti GB).
- * 
- * @param {string} filePath - Percorso assoluto del file da analizzare
- * @param {string} [algorithm='sha256'] - Algoritmo crittografico ('sha256' o 'md5')
- * @param {function(number): void} [onProgress] - Callback facoltativa che riceve il numero di byte letti finora
- * @returns {Promise<string>} Stringa esadecimale dell'hash completo
+ * Distrugge uno stream se è ancora vivo. `destroy()` è idempotente
+ * ma va chiamato dopo `removeAllListeners` per non ri-entrare in `error`.
+ *
+ * @param {import('fs').ReadStream|null|undefined} stream
+ * @returns {void}
  */
-async function computeFullHash(filePath, algorithm = 'sha256', onProgress = null) {
-  return new Promise((resolve, reject) => {
-    try {
-    logger.debug(`[Hasher] Inizio calcolo hash COMPLETO (${algorithm}) per: "${filePath}"`);
+function destroyStream(stream) {
+  if (!stream) return;
+  try {
+    stream.removeAllListeners();
+  } catch (_err) {
+    /* stream già chiuso */
+  }
+  try {
+    if (!stream.destroyed && typeof stream.destroy === 'function') {
+      stream.destroy();
+    }
+  } catch (_err) {
+    /* destroy su stream già ended: ignorabile */
+  }
+}
 
-    const validAlgo = (algorithm.toLowerCase() === 'md5') ? 'md5' : 'sha256';
-    const hash = crypto.createHash(validAlgo);
+/**
+ * Legge un file a stream, aggiorna un hash Node.js, chiude sempre il descriptor.
+ *
+ * @param {string} filePath Percorso assoluto.
+ * @param {string} algorithm `sha256` o `md5`.
+ * @param {import('fs').ReadStreamOptions} streamOptions Opzioni `createReadStream`.
+ * @param {function(number): void} [onProgress] Byte letti cumulativi.
+ * @returns {Promise<string>} Digest esadecimale.
+ * @throws {Error} Se `filePath` è vuoto, il file non è leggibile, o lo stream emette `error`.
+ */
+function hashFileStream(filePath, algorithm, streamOptions, onProgress) {
+  const target = String(filePath || '').trim();
+  if (!target) {
+    return Promise.reject(new Error('Percorso file vuoto per il calcolo hash'));
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let stream = null;
+    const hash = crypto.createHash(normalizeAlgorithm(algorithm));
     let bytesRead = 0;
 
-    // Utilizziamo un buffer di lettura bilanciato da 64 KB (65536 byte)
-    const stream = fs.createReadStream(filePath, { highWaterMark: 64 * 1024 });
+    /**
+     * Chiude lo stream una sola volta e completa la Promise.
+     * @param {Error|null} err
+     * @param {string|null} digest
+     */
+    const settle = (err, digest) => {
+      if (settled) return;
+      settled = true;
+      destroyStream(stream);
+      if (err) reject(err);
+      else resolve(digest);
+    };
+
+    try {
+      stream = fs.createReadStream(target, streamOptions);
+    } catch (err) {
+      settle(err, null);
+      return;
+    }
 
     stream.on('data', (chunk) => {
-      hash.update(chunk);
-      bytesRead += chunk.length;
-      if (typeof onProgress === 'function') {
-        onProgress(bytesRead);
+      try {
+        hash.update(chunk);
+        bytesRead += chunk.length;
+        if (typeof onProgress === 'function') onProgress(bytesRead);
+      } catch (err) {
+        settle(err, null);
       }
     });
 
     stream.on('end', () => {
-      const digest = hash.digest('hex');
-      logger.debug(`[Hasher] Hash COMPLETO calcolato per "${filePath}" (${bytesRead} byte): ${digest}`);
-      resolve(digest);
+      try {
+        settle(null, hash.digest('hex'));
+      } catch (err) {
+        settle(err, null);
+      }
     });
 
     stream.on('error', (err) => {
-      logger.warn(`[Hasher] Errore calcolo hash completo per "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
-      reject(err);
+      settle(err, null);
     });
-    } catch (err) {
-      logger.warn(`[Hasher] computeFullHash interrotto per "${filePath}": ${err.message}`);
-      reject(err);
-    }
+
+    // `close` copre il caso Windows in cui il descriptor viene chiuso
+    // (antivirus, lock) senza un `end` pulito: senza settle la Promise resterebbe appesa.
+    stream.on('close', () => {
+      if (!settled) {
+        settle(new Error('Stream di lettura chiuso prima del digest hash'), null);
+      }
+    });
   });
+}
+
+/**
+ * Hash dei primi `chunkSize` byte (pre-filtro I/O).
+ *
+ * @param {string} filePath Percorso assoluto del file.
+ * @param {string} [algorithm='sha256'] `sha256` o `md5`.
+ * @param {number} [chunkSize=DEFAULT_CHUNK_SIZE] Byte da leggere dalla testa.
+ * @returns {Promise<string>} Digest esadecimale del chunk.
+ * @throws {Error} File illeggibile, permessi, o percorso vuoto.
+ */
+async function computePartialHash(filePath, algorithm = 'sha256', chunkSize = DEFAULT_CHUNK_SIZE) {
+  const size = Number(chunkSize) > 0 ? Number(chunkSize) : DEFAULT_CHUNK_SIZE;
+  logger.debug(`[Hasher] Hash parziale (${algorithm}, ${size} B) per: "${filePath}"`);
+  try {
+    const digest = await hashFileStream(filePath, algorithm, { start: 0, end: size - 1 });
+    logger.debug(`[Hasher] Hash parziale ok "${filePath}": ${digest.substring(0, 16)}…`);
+    return digest;
+  } catch (err) {
+    logger.warn(`[Hasher] Hash parziale fallito "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
+    throw err;
+  }
+}
+
+/**
+ * Hash dell'intero file a blocchi da 64 KiB (mai il buffer completo in RAM).
+ *
+ * @param {string} filePath Percorso assoluto del file.
+ * @param {string} [algorithm='sha256'] `sha256` o `md5`.
+ * @param {function(number): void} [onProgress] Callback con i byte letti finora.
+ * @returns {Promise<string>} Digest esadecimale completo.
+ * @throws {Error} File illeggibile, permessi, o percorso vuoto.
+ */
+async function computeFullHash(filePath, algorithm = 'sha256', onProgress = null) {
+  logger.debug(`[Hasher] Hash completo (${algorithm}) per: "${filePath}"`);
+  try {
+    const digest = await hashFileStream(
+      filePath,
+      algorithm,
+      { highWaterMark: 64 * 1024 },
+      onProgress
+    );
+    logger.debug(`[Hasher] Hash completo ok "${filePath}": ${digest}`);
+    return digest;
+  } catch (err) {
+    logger.warn(`[Hasher] Hash completo fallito "${filePath}": [${err.code || 'UNKNOWN'}] ${err.message}`);
+    throw err;
+  }
 }
 
 module.exports = {
   DEFAULT_CHUNK_SIZE,
+  normalizeAlgorithm,
   computePartialHash,
   computeFullHash
 };
