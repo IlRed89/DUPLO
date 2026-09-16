@@ -198,7 +198,7 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * Sposta un file in una cartella di destinazione.
    * @param {string} sourcePath - Percorso del file da spostare
    * @param {string} destFolder - Cartella dove collocare il file
-   * @returns {Promise<{success: boolean, newPath?: string, error?: string}>}
+   * @returns {Promise<{success: boolean, error?: string}>}
    */
   moveFile: (sourcePath, destFolder) => ipcRenderer.invoke('file:move', { sourcePath, destFolder }),
 
