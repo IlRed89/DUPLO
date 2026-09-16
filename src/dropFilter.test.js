@@ -39,7 +39,7 @@ test('validateDroppedPath accetta directory e scarta i file con fs.promises.stat
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-drop-async-'));
   const nested = path.join(tmpDir, 'cartella');
   const filePath = path.join(tmpDir, 'file.txt');
-  await fsp.mkdtemp && await fsp.mkdir(nested);
+  await fsp.mkdir(nested);
   await fsp.writeFile(filePath, 'non una cartella');
 
   const ok = await validateDroppedPath(nested);
