@@ -13,5 +13,3 @@
  * - `preventDefault` senza `stopPropagation` sul dragover;
  * - overlay con `pointer-events: none` e contatore anti-flicker.
  */
-
-'use strict';
