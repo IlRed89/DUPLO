@@ -294,14 +294,6 @@ contextBridge.exposeInMainWorld('duploAPI', {
   setNativeTheme: (source) => ipcRenderer.invoke('set-native-theme', source),
 
   /**
-   * Esporta il report in JSON o CSV.
-   * @param {string} format
-   * @param {Array<Object>} groups
-   * @returns {Promise<{success: boolean, canceled?: boolean, path?: string, error?: string}>}
-   */
-  exportReport: (format, groups) => ipcRenderer.invoke('report:export', { format, groups }),
-
-  /**
    * Percorso del file di log persistente.
    * @returns {Promise<string>}
    */
