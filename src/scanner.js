@@ -288,12 +288,49 @@ function buildBucketKey(file, criteria) {
 }
 
 /**
+ * Criteri di matching ammessi nel payload risultati.
+ * `hash` = contenuto confermato; `size` = stessa dimensione;
+ * `name` = nome esatto; `fuzzy` = similarità nomi ≥ 80%.
+ * @type {ReadonlySet<string>}
+ */
+const MATCH_REASONS = new Set(['hash', 'size', 'name', 'fuzzy']);
+
+/**
+ * Classifica il criterio che ha *determinato* l'uguaglianza del cluster.
+ * Priorità (dal più specifico): hash confermato → fuzzy clustering →
+ * nome esatto → dimensione (fallback anche per estensione/data-only).
+ *
+ * @param {ScanCriteria} criteria
+ * @param {{ hashed?: boolean, fuzzyApplied?: boolean }} [flags]
+ * @returns {'hash'|'size'|'name'|'fuzzy'}
+ */
+function classifyMatchReason(criteria, flags) {
+  const opts = criteria && typeof criteria === 'object' ? criteria : {};
+  const hashed = !!(flags && flags.hashed);
+  const fuzzyApplied = !!(flags && flags.fuzzyApplied);
+  if (hashed) {
+    return 'hash';
+  }
+  if (fuzzyApplied) {
+    return 'fuzzy';
+  }
+  if (opts.matchName) {
+    return 'name';
+  }
+  return 'size';
+}
+
+/**
  * Trasforma i bucket grezzi nel payload inviato al Renderer.
+ * Ogni gruppo porta `matchReason` così il pannello destro può sezionare
+ * i risultati per criterio (hash / size / name / fuzzy).
  *
  * @param {FileRecord[][]} rawGroups
- * @returns {Array<{groupId: number, size: number, wastedBytes: number, fileCount: number, hash: string|null, files: FileRecord[]}>}
+ * @param {'hash'|'size'|'name'|'fuzzy'} [matchReason]
+ * @returns {Array<{groupId: number, size: number, wastedBytes: number, fileCount: number, hash: string|null, matchReason: string, files: FileRecord[]}>}
  */
-function formatDuplicateGroups(rawGroups) {
+function formatDuplicateGroups(rawGroups, matchReason) {
+  const reason = MATCH_REASONS.has(matchReason) ? matchReason : 'size';
   return rawGroups.map((files, index) => {
     const singleFileSize = files[0].size;
     const duplicateCount = files.length - 1;
@@ -304,6 +341,7 @@ function formatDuplicateGroups(rawGroups) {
       wastedBytes,
       fileCount: files.length,
       hash: files[0].fullHash || files[0].partialHash || null,
+      matchReason: reason,
       files
     };
   }).sort((a, b) => b.wastedBytes - a.wastedBytes);
@@ -315,7 +353,7 @@ function formatDuplicateGroups(rawGroups) {
  * (che in Node diventa `cwd` e scansionerebbe l'app stessa).
  *
  * @param {unknown} directories
- * @returns {string[]} Path normalizzati non vuoti.
+ * @returns {string[]}
  * @throws {Error} Se non resta nessuna cartella valida.
  */
 function normalizeScanDirectories(directories) {
@@ -407,6 +445,7 @@ async function findDuplicates(directories, criteria, token, onProgress) {
   allFiles.length = 0;
   initialBuckets.clear();
 
+  let fuzzyApplied = false;
   if (opts.matchFuzzyName && !opts.matchName) {
     // Fuzzy: Levenshtein + Dice + stem senza parentesi, soglia 0.80.
     // Si applica *dentro* i bucket già ristretti (non O(n²) su tutta la raccolta).
@@ -423,6 +462,7 @@ async function findDuplicates(directories, criteria, token, onProgress) {
     }
     logger.info('[Scanner] Fuzzy: ' + candidateBuckets.length + ' bucket -> ' + fuzzyBuckets.length + ' cluster');
     candidateBuckets = fuzzyBuckets;
+    fuzzyApplied = true;
   } else if (opts.matchFuzzyName && opts.matchName) {
     logger.warn('[Scanner] Nomi Simili ignorato: e attivo anche Stesso Nome File (confronto esatto)');
   }
@@ -430,7 +470,9 @@ async function findDuplicates(directories, criteria, token, onProgress) {
   logger.info('[Scanner] Individuati ' + candidateBuckets.length + ' gruppi con potenziali duplicati.');
 
   if (!opts.matchHash) {
-    const finalGroups = formatDuplicateGroups(candidateBuckets);
+    const reason = classifyMatchReason(opts, { hashed: false, fuzzyApplied });
+    logger.info('[Scanner] matchReason assegnato ai cluster: ' + reason);
+    const finalGroups = formatDuplicateGroups(candidateBuckets, reason);
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     logger.info('[Scanner] Scansione completata in ' + duration + 's senza hashing. Trovati ' + finalGroups.length + ' gruppi duplicati.');
     return finalGroups;
@@ -514,7 +556,8 @@ async function findDuplicates(directories, criteria, token, onProgress) {
   }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-  const finalGroups = formatDuplicateGroups(confirmedDuplicateGroups);
+  logger.info('[Scanner] matchReason assegnato ai cluster: hash (conferma crittografica)');
+  const finalGroups = formatDuplicateGroups(confirmedDuplicateGroups, 'hash');
   logger.info('[Scanner] Scansione terminata in ' + duration + 's. Rilevati ' + finalGroups.length + ' gruppi duplicati confermati.');
   return finalGroups;
 }
@@ -522,5 +565,8 @@ async function findDuplicates(directories, criteria, token, onProgress) {
 module.exports = {
   ScanCancellationToken,
   normalizeCrossPlatformPath,
-  findDuplicates
+  findDuplicates,
+  classifyMatchReason,
+  formatDuplicateGroups,
+  MATCH_REASONS
 };
