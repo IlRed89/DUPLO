@@ -375,3 +375,41 @@ function renderFolderList() {
     dom.folderListContainer.appendChild(item);
   });
 }
+
+/**
+ * Logga i toggle dei criteri di confronto.
+ * @returns {void}
+ */
+function bindCriteriaLogging() {
+  const checkboxes = [
+    ['chkMatchSize', 'Stessa Dimensione'],
+    ['chkMatchHash', 'Hash Contenuto'],
+    ['chkMatchName', 'Stesso Nome'],
+    ['chkMatchFuzzyName', 'Nomi Simili (Fuzzy)'],
+    ['chkMatchExtension', 'Stessa Estensione'],
+    ['chkMatchDate', 'Stessa Data'],
+    ['chkIncludeHidden', 'Includi nascosti']
+  ];
+  checkboxes.forEach(function (pair) {
+    const el = dom[pair[0]];
+    if (!el) {
+      return;
+    }
+    el.addEventListener('change', function () {
+      logToMain('info', t('log.filterToggled', {
+        name: pair[1],
+        state: el.checked ? t('log.filterOn') : t('log.filterOff')
+      }));
+    });
+  });
+  if (dom.selectHashAlgo) {
+    dom.selectHashAlgo.addEventListener('change', function () {
+      logToMain('info', t('log.hashAlgo', { algo: dom.selectHashAlgo.value }));
+    });
+  }
+  if (dom.inputMinSize) {
+    dom.inputMinSize.addEventListener('change', function () {
+      logToMain('info', t('log.minSize', { value: dom.inputMinSize.value }));
+    });
+  }
+}
