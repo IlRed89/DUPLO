@@ -9,7 +9,7 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ### Fixed
 
-- Modal di rinomina file interno non funzionante (`window.prompt` silenzioso in Electron): ora un dialogo a tema con input precompilato invia `rename-file` al Main (`fs.promises.rename`) e aggiorna subito path/nome nel DOM.
+- Modal di rinomina: event delegation su `#resultsScrollContainer` (`.btn-rename`), DuploDialog sempre visibile sopra l'overlay drop, IPC `rename-file` con retry EBUSY e chiusura stream hash prima del resolve.
 - Ordinamento sequenziale e deterministico dei gruppi di risultati: i cluster sono ordinati per dimensione decrescente (poi nome File #1) e ricevono `groupId` 1..N senza salti.
 
 ### Changed
