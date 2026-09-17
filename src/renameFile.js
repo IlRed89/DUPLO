@@ -68,7 +68,7 @@ function resolveRenameDestination(oldPath, newName) {
     logger.warn('[Rename] rifiutato: nome non valido "' + trimmed + '"');
     return { ok: false, error: 'Il nuovo nome non può contenere percorsi o caratteri riservati', code: 'EINVAL' };
   }
-  if (/[<>:"|?*\x00-\x1f]/.test(trimmed) {
+  if (/[<>:"|?*\x00-\x1f]/.test(trimmed)) {
     logger.warn('[Rename] rifiutato: caratteri Windows non validi in "' + trimmed + '"');
     return { ok: false, error: 'Il nuovo nome contiene caratteri non validi (<>:"/\\|?*)', code: 'EINVAL' };
   }
