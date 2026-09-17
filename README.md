@@ -212,7 +212,7 @@ Cosa puoi fare su ogni riga:
 - spuntare la **checkbox** di un file singolo;
 - usare **Seleziona dal 2° in poi** / **Deseleziona dal 2° in poi** (sezione o gruppo): toggle a due vie che lascia sempre deselezionato File #1 e spunta (o toglie) #2, #3, …;
 - cliccare il **percorso** per aprire Esplora file / Finder sulla posizione (hover con sottolineatura e colore accento). I percorsi lunghi restano visibili per intero: la riga scorre in orizzontale (`overflow-x: auto`) e il tooltip nativo `title` mostra il path assoluto; i pulsanti e le checkbox non si comprimono (`flex-shrink: 0`);
-- **Rinomina** apre un dialogo a tema con il nome attuale (senza path); alla conferma il Main rinomina con `fs.promises.rename` e l'UI aggiorna subito nome, percorso e apertura cartella;
+- **Rinomina** (event delegation sul pannello risultati) apre un dialogo a tema *sopra* ogni overlay, con il nome attuale (senza path); alla conferma il Main rinomina con `fs.promises.rename` (retry su `EBUSY`) e l'UI aggiorna subito nome, percorso e apertura cartella. Gli stream di hash vengono chiusi (`destroy`) prima che la Promise di hashing si risolva, così Windows non tiene il file lockato;
 - leggere la **data di modifica**;
 - **Elimina** per cancellare **solo quel file**, dopo una conferma a tema.
 
