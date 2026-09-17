@@ -262,3 +262,116 @@ document.addEventListener('DOMContentLoaded', function () {
     logToMain('error', 'Init preferenze UI fallito: ' + (err && err.message));
   });
 });
+
+/**
+ * Dialog nativo "Aggiungi Cartella".
+ * @returns {Promise<void>}
+ */
+async function onAddFolderClick() {
+  logToMain('info', t('log.addFolder'));
+  try {
+    const selected = await window.duploAPI.selectDirectory();
+    if (!selected) {
+      return;
+    }
+    if (state.selectedFolders.indexOf(selected) !== -1) {
+      alert(t('alert.folderExists'));
+      return;
+    }
+    addFolderPath(selected, 'dialogo nativo');
+  } catch (err) {
+    logToMain('error', 'Errore durante la selezione della cartella: ' + err.message);
+  }
+}
+
+/**
+ * Svuota l'elenco cartelle senza toccare i filtri.
+ * @returns {void}
+ */
+function onClearFoldersClick() {
+  if (state.selectedFolders.length === 0) {
+    return;
+  }
+  state.selectedFolders = [];
+  renderFolderList();
+}
+
+/**
+ * Rimuove una cartella per indice.
+ * @param {number} index
+ * @returns {void}
+ */
+function removeFolder(index) {
+  if (index >= 0 && index < state.selectedFolders.length) {
+    state.selectedFolders.splice(index, 1);
+    renderFolderList();
+  }
+}
+
+/**
+ * Aggiunge un path già validato (dialogo o drop). Deduplica per uguaglianza stringa.
+ *
+ * @param {string} folderPath
+ * @param {string} source Etichetta di log (`dialogo nativo` / `drag & drop`).
+ * @returns {void}
+ */
+function addFolderPath(folderPath, source) {
+  if (!folderPath) {
+    return;
+  }
+  if (state.selectedFolders.indexOf(folderPath) !== -1) {
+    return;
+  }
+  state.selectedFolders.push(folderPath);
+  logToMain('info', t('log.folderAdded', { source: source, path: folderPath }));
+  renderFolderList();
+}
+
+/**
+ * Ricostruisce la lista cartelle nel DOM.
+ * @returns {void}
+ */
+function renderFolderList() {
+  if (dom.folderCountBadge) {
+    dom.folderCountBadge.textContent = '(' + state.selectedFolders.length + ')';
+  }
+  if (!dom.folderListContainer) {
+    return;
+  }
+  dom.folderListContainer.innerHTML = '';
+  if (state.selectedFolders.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-folders-hint';
+    const line = document.createElement('span');
+    line.setAttribute('data-i18n', 'folders.empty');
+    line.textContent = t('folders.empty');
+    empty.appendChild(line);
+    empty.appendChild(document.createElement('br'));
+    const hint = document.createElement('span');
+    hint.className = 'drop-hint';
+    hint.setAttribute('data-i18n', 'folders.dropHint');
+    hint.textContent = t('folders.dropHint');
+    empty.appendChild(hint);
+    dom.folderListContainer.appendChild(empty);
+    return;
+  }
+  state.selectedFolders.forEach(function (folder, idx) {
+    const item = document.createElement('div');
+    item.className = 'folder-item';
+    const pathSpan = document.createElement('span');
+    pathSpan.className = 'folder-path';
+    pathSpan.title = folder;
+    pathSpan.textContent = folder;
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove-folder';
+    removeBtn.title = t('folders.removeOne');
+    removeBtn.setAttribute('data-i18n-title', 'folders.removeOne');
+    removeBtn.textContent = 'x';
+    removeBtn.onclick = function () {
+      removeFolder(idx);
+    };
+    item.appendChild(pathSpan);
+    item.appendChild(removeBtn);
+    dom.folderListContainer.appendChild(item);
+  });
+}
