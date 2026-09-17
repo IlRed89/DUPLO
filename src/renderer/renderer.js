@@ -259,6 +259,10 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 
+/**
+ * Dialog nativo "Aggiungi Cartella".
+ * @returns {Promise<void>}
+ */
 async function onAddFolderClick() {
   logToMain('info', t('log.addFolder'));
   try {
@@ -276,6 +280,10 @@ async function onAddFolderClick() {
   }
 }
 
+/**
+ * Svuota l'elenco cartelle senza toccare i filtri.
+ * @returns {void}
+ */
 function onClearFoldersClick() {
   if (state.selectedFolders.length === 0) {
     return;
@@ -284,6 +292,11 @@ function onClearFoldersClick() {
   renderFolderList();
 }
 
+/**
+ * Rimuove una cartella per indice.
+ * @param {number} index
+ * @returns {void}
+ */
 function removeFolder(index) {
   if (index >= 0 && index < state.selectedFolders.length) {
     state.selectedFolders.splice(index, 1);
@@ -291,6 +304,13 @@ function removeFolder(index) {
   }
 }
 
+/**
+ * Aggiunge un path già validato (dialogo o drop). Deduplica per uguaglianza stringa.
+ *
+ * @param {string} folderPath
+ * @param {string} source Etichetta di log (`dialogo nativo` / `drag & drop`).
+ * @returns {void}
+ */
 function addFolderPath(folderPath, source) {
   if (!folderPath) {
     return;
@@ -303,6 +323,10 @@ function addFolderPath(folderPath, source) {
   renderFolderList();
 }
 
+/**
+ * Ricostruisce la lista cartelle nel DOM.
+ * @returns {void}
+ */
 function renderFolderList() {
   if (dom.folderCountBadge) {
     dom.folderCountBadge.textContent = '(' + state.selectedFolders.length + ')';
@@ -348,6 +372,10 @@ function renderFolderList() {
   });
 }
 
+/**
+ * Logga i toggle dei criteri di confronto.
+ * @returns {void}
+ */
 function bindCriteriaLogging() {
   const checkboxes = [
     ['chkMatchSize', 'Stessa Dimensione'],
@@ -382,6 +410,12 @@ function bindCriteriaLogging() {
   }
 }
 
+/**
+ * Carica i dizionari JSON, applica lingua e tema da `localStorage`,
+ * notifica il Main (menu nativo + `nativeTheme.themeSource`).
+ *
+ * @returns {Promise<void>}
+ */
 async function initPreferences() {
   const i18n = window.DuploI18n;
   const langs = (i18n && i18n.SUPPORTED_LANGS) ? i18n.SUPPORTED_LANGS : ['it', 'en', 'es', 'fr'];
@@ -424,6 +458,13 @@ async function initPreferences() {
   applyTheme(savedTheme, { persist: false });
 }
 
+/**
+ * Applica la lingua a tutti i nodi `data-i18n*` e notifica il Main Process.
+ *
+ * @param {unknown} lang
+ * @param {{ persist?: boolean, skipRender?: boolean }} [opts]
+ * @returns {void}
+ */
 function applyLanguage(lang, opts) {
   const i18n = window.DuploI18n;
   const code = i18n && typeof i18n.normalizeLanguage === 'function'
@@ -463,6 +504,13 @@ function applyLanguage(lang, opts) {
   }
 }
 
+/**
+ * Applica il tema chiaro/scuro (`html[data-theme]`) e notifica `nativeTheme`.
+ *
+ * @param {unknown} theme
+ * @param {{ persist?: boolean }} [opts]
+ * @returns {void}
+ */
 function applyTheme(theme, opts) {
   const source = String(theme || '').trim().toLowerCase() === 'light' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', source);
@@ -481,6 +529,10 @@ function applyTheme(theme, opts) {
   }
 }
 
+/**
+ * Lingua del menu nativo + hint categoria file.
+ * @returns {void}
+ */
 function bindLanguageAndCategory() {
   if (dom.selectLanguage) {
     dom.selectLanguage.addEventListener('change', function () {
@@ -495,6 +547,10 @@ function bindLanguageAndCategory() {
   }
 }
 
+/**
+ * Selettore tema chiaro/scuro.
+ * @returns {void}
+ */
 function bindThemeSelector() {
   if (!dom.selectTheme) {
     return;
@@ -504,6 +560,10 @@ function bindThemeSelector() {
   });
 }
 
+/**
+ * Estensioni della categoria selezionata (array vuoto = tutti i tipi).
+ * @returns {string[]}
+ */
 function getSelectedCategoryExtensions() {
   const api = window.DuploFileCategories;
   const id = (dom.selectFileCategory && dom.selectFileCategory.value) || 'all';
@@ -513,6 +573,10 @@ function getSelectedCategoryExtensions() {
   return [];
 }
 
+/**
+ * Aggiorna il testo di aiuto sotto la tendina categoria.
+ * @returns {void}
+ */
 function updateCategoryHint() {
   if (!dom.categoryHint) {
     return;
@@ -529,6 +593,12 @@ function updateCategoryHint() {
   dom.categoryHint.textContent = t('filters.categoryHintExts', { exts: exts.join(', ') });
 }
 
+/**
+ * Splitter laterale: al drag, `newWidth = clamp(start + deltaX, MIN_SIDEBAR, body - MIN_MAIN)`.
+ * I minimi vivono in `splitterMath.js` (testabili senza DOM).
+ *
+ * @returns {void}
+ */
 function initSplitter() {
   const splitter = dom.panelSplitter;
   const sidebar = dom.sidebarPanel;
@@ -576,12 +646,28 @@ function initSplitter() {
   });
 }
 
+/**
+ * Drop a tutta finestra.
+ *
+ * Contatore anti-flicker: `dragenter`/`dragleave` sparano anche quando il
+ * puntatore entra in un *figlio* (il browser tratta ogni elemento come
+ * enter/leave). Senza contatore l'overlay lampeggerebbe. Si incrementa su
+ * enter, si decrementa su leave, si nasconde solo a 0.
+ * L'overlay ha `pointer-events: none` così non genera enter/leave propri.
+ *
+ * @returns {void}
+ */
 function initFolderDropZone() {
   const overlay = dom.dragOverlay;
   let dragCounter = 0;
   let dragActive = false;
   const opts = { capture: true };
 
+  /**
+   * True se il dataTransfer contiene file (non testo/URL).
+   * @param {DragEvent} event
+   * @returns {boolean}
+   */
   function isFileDrag(event) {
     try {
       const types = event && event.dataTransfer && event.dataTransfer.types;
@@ -598,6 +684,13 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * preventDefault + dropEffect=copy. NON stopPropagation su dragover:
+   * in Chromium/Electron bloccherebbe l'evento drop.
+   *
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function allowCopyDrop(event) {
     try {
       event.preventDefault();
@@ -613,6 +706,9 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   function showOverlay() {
     try {
       if (!dragActive) {
@@ -628,6 +724,9 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * @returns {void}
+   */
   function hideOverlay() {
     try {
       dragCounter = 0;
@@ -641,6 +740,10 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function onDragEnter(event) {
     try {
       allowCopyDrop(event);
@@ -654,6 +757,10 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function onDragOver(event) {
     try {
       allowCopyDrop(event);
@@ -665,6 +772,10 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function onDragLeave(event) {
     try {
       allowCopyDrop(event);
@@ -679,6 +790,11 @@ function initFolderDropZone() {
     }
   }
 
+  /**
+   * Raccoglie i File HTML5 dal DataTransfer (deduplicati per name+size+mtime).
+   * @param {DataTransfer|null} dataTransfer
+   * @returns {File[]}
+   */
   function collectDroppedFiles(dataTransfer) {
     const out = [];
     const seen = {};
@@ -714,6 +830,10 @@ function initFolderDropZone() {
     return out;
   }
 
+  /**
+   * Path nativi stashed dal preload (File vivo, non clonato).
+   * @returns {string[]}
+   */
   function consumeStashedPaths() {
     try {
       if (window.duploAPI && typeof window.duploAPI.consumeDroppedPaths === 'function') {
@@ -728,6 +848,10 @@ function initFolderDropZone() {
     return [];
   }
 
+  /**
+   * @param {DragEvent} event
+   * @returns {void}
+   */
   function onDrop(event) {
     try {
       allowCopyDrop(event);
@@ -771,6 +895,12 @@ function initFolderDropZone() {
   }
 }
 
+/**
+ * Path nativo di un File HTML5 via preload (`webUtils`). Fallback `file.path`.
+ *
+ * @param {File} file
+ * @returns {string}
+ */
 function resolveDroppedFilePath(file) {
   try {
     const api = (window.duploAPI && window.duploAPI.getPathForFile)
@@ -795,6 +925,15 @@ function resolveDroppedFilePath(file) {
   return '';
 }
 
+/**
+ * Elabora un drop: unisce stash preload + File HTML5, valida ogni path
+ * nel Main (`isDirectory`). I file singoli restano ignorati (non si prende
+ * la cartella padre: rischierebbe di scansionare alberi enormi).
+ *
+ * @param {File[]} files
+ * @param {string[]} stashedPaths
+ * @returns {Promise<void>}
+ */
 async function handleFolderDrop(files, stashedPaths) {
   try {
     logToMain('info', 'Iniziato drag & drop (drop ricevuto)');
@@ -802,6 +941,10 @@ async function handleFolderDrop(files, stashedPaths) {
     const paths = [];
     const seen = {};
 
+    /**
+     * @param {string} nativePath
+     * @returns {void}
+     */
     function pushPath(nativePath) {
       if (!nativePath || seen[nativePath]) {
         return;
@@ -860,6 +1003,12 @@ async function handleFolderDrop(files, stashedPaths) {
   }
 }
 
+/**
+ * Legge i controlli UI e produce i criteri per `scan:start`.
+ * Date vuote → 0 (nessun filtro), mai NaN. Almeno un criterio deve essere attivo.
+ *
+ * @returns {Object|null}
+ */
 function collectScanCriteria() {
   const filters = window.DuploAdvancedFilters;
   const categoryExts = getSelectedCategoryExtensions();
@@ -915,6 +1064,10 @@ function collectScanCriteria() {
   return criteria;
 }
 
+/**
+ * Azzera cartelle, filtri e risultati senza chiudere l'app.
+ * @returns {void}
+ */
 function resetApp() {
   try {
     if (state.isScanning) {
@@ -1005,6 +1158,10 @@ function resetApp() {
   }
 }
 
+/**
+ * Logga apertura/chiusura del pannello Ricerca Avanzata.
+ * @returns {void}
+ */
 function bindAdvancedSearchLogging() {
   try {
     if (dom.advancedSearchPanel) {
@@ -1019,6 +1176,12 @@ function bindAdvancedSearchLogging() {
   }
 }
 
+/**
+ * Avvia la scansione. Cartelle e criteri vuoti si intercettano qui
+ * (alert), così il Main non riceve Promise rejection inutili.
+ *
+ * @returns {Promise<void>}
+ */
 async function onStartScanClick() {
   logToMain('info', t('log.scanStart'));
   if (state.selectedFolders.length === 0) {
@@ -1077,6 +1240,10 @@ async function onStartScanClick() {
   }
 }
 
+/**
+ * Richiede l'interruzione cooperativa della scansione.
+ * @returns {Promise<void>}
+ */
 async function onCancelScanClick() {
   try {
     await window.duploAPI.cancelScan();
@@ -1085,6 +1252,13 @@ async function onCancelScanClick() {
   }
 }
 
+/**
+ * Aggiorna la progress bar. `collecting`/`grouping` sono indeterminati
+ * (non sappiamo quanti file ci sono); `hashing` ha un totale noto.
+ *
+ * @param {Object} data
+ * @returns {void}
+ */
 function handleScanProgress(data) {
   if (!data) {
     return;
@@ -1137,18 +1311,40 @@ function handleScanProgress(data) {
   }
 }
 
+/**
+ * Disegna i gruppi duplicati e le statistiche.
+ * @returns {void}
+ */
+/**
+ * Nome file da un path OS (senza Node `path`).
+ *
+ * @param {unknown} filePath
+ * @returns {string}
+ */
 function fileNameFromPath(filePath) {
   const s = String(filePath || '');
   const i = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'));
   return i >= 0 ? s.slice(i + 1) : s;
 }
 
+/**
+ * Directory padre di un path OS.
+ *
+ * @param {unknown} filePath
+ * @returns {string}
+ */
 function dirNameFromPath(filePath) {
   const s = String(filePath || '');
   const i = Math.max(s.lastIndexOf('/'), s.lastIndexOf('\\'));
   return i >= 0 ? s.slice(0, i) : '';
 }
 
+/**
+ * Raggruppa i cluster per `matchReason` nell'ordine hash → size → name → fuzzy.
+ *
+ * @param {Array<Object>} groups
+ * @returns {Array<{ reason: string, groups: Array<Object> }>}
+ */
 function groupResultsByMatchReason(groups) {
   const buckets = {};
   MATCH_REASON_ORDER.forEach(function (reason) {
@@ -1165,11 +1361,19 @@ function groupResultsByMatchReason(groups) {
   });
 }
 
+/**
+ * @param {unknown} reason
+ * @returns {'hash'|'size'|'name'|'fuzzy'}
+ */
 function MATCH_REASONS_SAFE(reason) {
   const value = String(reason || '');
   return MATCH_REASON_ORDER.indexOf(value) !== -1 ? value : 'size';
 }
 
+/**
+ * Disegna i gruppi duplicati sezionati per criterio di rilevamento.
+ * @returns {void}
+ */
 function renderResults() {
   if (dom.resultsList) {
     dom.resultsList.innerHTML = '';
@@ -1229,6 +1433,13 @@ function renderResults() {
   });
 }
 
+/**
+ * Costruisce una macro-sezione collassabile per un criterio di matching.
+ *
+ * @param {string} reason
+ * @param {Array<Object>} groups
+ * @returns {HTMLElement}
+ */
 function buildReasonSection(reason, groups) {
   const section = document.createElement('section');
   const collapsed = !!state.collapsedReasons[reason];
@@ -1319,6 +1530,13 @@ function buildReasonSection(reason, groups) {
   return section;
 }
 
+/**
+ * Card di un set identico (originale + duplicati) dentro una macro-sezione.
+ *
+ * @param {Object} group
+ * @param {number} groupIdx
+ * @returns {HTMLElement}
+ */
 function buildDuplicateCard(group, groupIdx) {
   const card = document.createElement('div');
   card.className = 'duplicate-group-card';
@@ -1377,6 +1595,14 @@ function buildDuplicateCard(group, groupIdx) {
   return card;
 }
 
+/**
+ * Riga file: checkbox, tag originale/duplicato, path, mtime, Apri, Rinomina, Elimina.
+ *
+ * @param {Object} group
+ * @param {Object} file
+ * @param {number} fileIndex
+ * @returns {HTMLElement}
+ */
 function buildFileRow(group, file, fileIndex) {
   const isOriginal = fileIndex === 0;
   const row = document.createElement('div');
@@ -1459,6 +1685,12 @@ function buildFileRow(group, file, fileIndex) {
   return row;
 }
 
+/**
+ * Apre Esplora file / Finder sul file.
+ *
+ * @param {string} filePath
+ * @returns {void}
+ */
 function openFilePath(filePath) {
   if (!filePath || !window.duploAPI || typeof window.duploAPI.showItemInFolder !== 'function') {
     return;
@@ -1467,6 +1699,13 @@ function openFilePath(filePath) {
   window.duploAPI.showItemInFolder(filePath);
 }
 
+/**
+ * Rinomina un file del gruppo tramite IPC `rename-file`.
+ *
+ * @param {Object} group
+ * @param {number} fileIndex
+ * @returns {Promise<void>}
+ */
 async function askRenameFile(group, fileIndex) {
   const file = group.files[fileIndex];
   const currentName = fileNameFromPath(file.path);
@@ -1495,6 +1734,13 @@ async function askRenameFile(group, fileIndex) {
   }
 }
 
+/**
+ * Chiede conferma e elimina un singolo duplicato.
+ *
+ * @param {Object} group
+ * @param {number} fileIndex
+ * @returns {void}
+ */
 function askDeleteSingleFile(group, fileIndex) {
   const file = group.files[fileIndex];
   openModal(
@@ -1520,6 +1766,10 @@ function askDeleteSingleFile(group, fileIndex) {
   );
 }
 
+/**
+ * Elimina i duplicati spuntati (mai l'originale di un gruppo).
+ * @returns {void}
+ */
 function onDeleteSelectedClick() {
   const selected = Object.keys(state.selectedPaths).filter(function (p) {
     return state.selectedPaths[p];
@@ -1563,6 +1813,10 @@ function onDeleteSelectedClick() {
   );
 }
 
+/**
+ * Elimina tutti i duplicati (tiene il primo file di ogni gruppo).
+ * @returns {void}
+ */
 function onBatchCleanClick() {
   if (state.duplicateGroups.length === 0) {
     return;
@@ -1606,6 +1860,12 @@ function onBatchCleanClick() {
   );
 }
 
+/**
+ * Esporta JSON o CSV tramite dialogo nativo di salvataggio.
+ *
+ * @param {string} format
+ * @returns {Promise<void>}
+ */
 async function onExportReport(format) {
   if (state.duplicateGroups.length === 0) {
     alert(t('alert.exportEmpty'));
@@ -1623,6 +1883,10 @@ async function onExportReport(format) {
   }
 }
 
+/**
+ * Mostra il percorso del file di log.
+ * @returns {Promise<void>}
+ */
 async function onShowLogPathClick() {
   try {
     const logPath = await window.duploAPI.getLogPath();
@@ -1632,6 +1896,10 @@ async function onShowLogPathClick() {
   }
 }
 
+/**
+ * Apre la guida in-app (README renderizzato).
+ * @returns {Promise<void>}
+ */
 async function onShowGuideClick() {
   if (!dom.guideOverlay) {
     return;
@@ -1664,12 +1932,20 @@ async function onShowGuideClick() {
   }
 }
 
+/**
+ * Chiude il pannello guida.
+ * @returns {void}
+ */
 function closeGuide() {
   if (dom.guideOverlay) {
     dom.guideOverlay.hidden = true;
   }
 }
 
+/**
+ * Apre README.md con l'editor di sistema.
+ * @returns {Promise<void>}
+ */
 async function onOpenReadmeFileClick() {
   try {
     const res = await window.duploAPI.openReadme();
@@ -1681,6 +1957,14 @@ async function onOpenReadmeFileClick() {
   }
 }
 
+/**
+ * Apre la modale di conferma. Se `confirmAction` è null è solo informativa.
+ *
+ * @param {string} title
+ * @param {string} messageHtml
+ * @param {(function(): void)|null} confirmAction
+ * @returns {void}
+ */
 function openModal(title, messageHtml, confirmAction) {
   if (dom.modalTitle) {
     dom.modalTitle.textContent = title;
@@ -1709,6 +1993,10 @@ function openModal(title, messageHtml, confirmAction) {
   }
 }
 
+/**
+ * Chiude la modale senza eseguire l'azione.
+ * @returns {void}
+ */
 function closeModal() {
   if (dom.confirmModal) {
     dom.confirmModal.style.display = 'none';
@@ -1716,6 +2004,10 @@ function closeModal() {
   state.pendingModalAction = null;
 }
 
+/**
+ * Esegue l'azione pendente della modale.
+ * @returns {void}
+ */
 function confirmModalAction() {
   if (typeof state.pendingModalAction === 'function') {
     const action = state.pendingModalAction;
@@ -1726,6 +2018,12 @@ function confirmModalAction() {
   }
 }
 
+/**
+ * Formattazione byte unificata (`src/formatBytes.js`).
+ *
+ * @param {unknown} bytes
+ * @returns {string}
+ */
 function formatBytes(bytes) {
   if (window.DuploFormatBytes && typeof window.DuploFormatBytes.formatBytes === 'function') {
     return window.DuploFormatBytes.formatBytes(bytes);
@@ -1740,6 +2038,12 @@ function formatBytes(bytes) {
   return (n / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
 }
 
+/**
+ * Escape HTML per path e messaggi inseriti nel DOM.
+ *
+ * @param {unknown} str
+ * @returns {string}
+ */
 function escapeHtml(str) {
   if (!str) {
     return '';
