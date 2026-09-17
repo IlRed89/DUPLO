@@ -2,8 +2,8 @@
  * @file resultsView.js
  * @description Vista risultati di DUPLO: badge criteri, sezioni, righe file.
  *
- * Caricato dopo `renderer.js` così usa `state`, `dom`, `t`, `logToMain`,
- * `formatBytes`, `askRenameFile` e `askDeleteSingleFile` già definiti.
+ * Caricato dopo `renderer.js` e `actionsView.js` così usa `state`, `dom`, `t`,
+ * `logToMain`, `formatBytes`, `askRenameFile` e `askDeleteSingleFile`.
  * Nessun modulo Node: tutto passa da `window.duploAPI`.
  *
  * I file di un gruppo sono File #1, #2, #3… (mtime crescente). Non esiste
