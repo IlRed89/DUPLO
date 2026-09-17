@@ -2,8 +2,9 @@
  * @file resultsView.js
  * @description Vista risultati di DUPLO: badge criteri, sezioni, righe file.
  *
- * Caricato dopo `renderer.js` e `actionsView.js` così usa `state`, `dom`, `t`,
- * `logToMain`, `formatBytes`, `askRenameFile` e `askDeleteSingleFile`.
+ * Caricato dopo `renderer.js` e `renameView.js` così usa `state`, `dom`, `t`,
+ * `logToMain`, `formatBytes` e `fileNameFromPath`. I click su Rinomina/Elimina
+ * passano da event delegation su `#resultsScrollContainer` (`.btn-rename`).
  * Nessun modulo Node: tutto passa da `window.duploAPI`.
  *
  * I file di un gruppo sono File #1, #2, #3… (mtime crescente). Non esiste
@@ -434,19 +435,11 @@ function buildFileRow(group, file, fileIndex) {
   const pathEl = document.createElement('span');
   pathEl.className = 'file-path-text';
   pathEl.title = file.path;
+  pathEl.setAttribute('data-path', file.path || '');
   pathEl.setAttribute('role', 'link');
   pathEl.setAttribute('aria-label', t('results.openPath') + ': ' + file.path);
   pathEl.tabIndex = 0;
   pathEl.textContent = file.path;
-  pathEl.addEventListener('click', function () {
-    openFilePath(file.path);
-  });
-  pathEl.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      openFilePath(file.path);
-    }
-  });
   pathScroll.appendChild(pathEl);
   main.appendChild(pathScroll);
 
@@ -462,21 +455,22 @@ function buildFileRow(group, file, fileIndex) {
 
   const renameBtn = document.createElement('button');
   renameBtn.type = 'button';
-  renameBtn.className = 'btn btn-secondary btn-sm';
+  renameBtn.className = 'btn btn-secondary btn-sm btn-rename';
+  renameBtn.setAttribute('data-path', file.path || '');
+  renameBtn.setAttribute('data-name', fileNameFromPath(file.path));
+  renameBtn.setAttribute('data-group-id', String(group.groupId || ''));
+  renameBtn.setAttribute('data-file-index', String(fileIndex));
+  renameBtn.setAttribute('data-i18n', 'results.rename');
   renameBtn.textContent = t('results.rename');
-  renameBtn.addEventListener('click', function () {
-    logToMain('info', '[Rename] click File #' + ordinal + ' "' + file.path + '"');
-    askRenameFile(group, fileIndex);
-  });
   actions.appendChild(renameBtn);
 
   const del = document.createElement('button');
   del.type = 'button';
-  del.className = 'btn btn-icon delete-hover btn-sm';
+  del.className = 'btn btn-icon delete-hover btn-sm btn-delete-file';
+  del.setAttribute('data-path', file.path || '');
+  del.setAttribute('data-group-id', String(group.groupId || ''));
+  del.setAttribute('data-file-index', String(fileIndex));
   del.textContent = t('results.delete');
-  del.addEventListener('click', function () {
-    askDeleteSingleFile(group, fileIndex);
-  });
   actions.appendChild(del);
 
   meta.appendChild(actions);
