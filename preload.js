@@ -284,7 +284,10 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * @param {string} newName
    * @returns {Promise<{success: boolean, oldPath?: string, newPath?: string, error?: string, code?: string}>}
    */
-  renameFile: (oldPath, newName) => ipcRenderer.invoke('rename-file', { oldPath, newName }),
+  renameFile: (oldPath, newName) => ipcRenderer.invoke('rename-file', {
+    oldPath: oldPath == null ? '' : String(oldPath),
+    newName: newName == null ? '' : String(newName)
+  }),
 
   /**
    * Imposta il tema nativo Electron: `dark` | `light` | `system`.
