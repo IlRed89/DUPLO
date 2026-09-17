@@ -80,21 +80,28 @@ cp -f "$win_ia32" "${DIST}/DUPLO-1.0.0-ia32-win.zip"
 
 python3 - <<'PY'
 import zipfile, sys
-checks = {
-    "dist/DUPLO-1.0.0-win.zip": "DUPLO.exe",
-    "dist/DUPLO-1.0.0-ia32-win.zip": "DUPLO.exe",
-    "dist/DUPLO-linux-x64.zip": "DUPLO",
-}
-for zip_path, expected in checks.items():
-    names = zipfile.ZipFile(zip_path).namelist()
-    if expected not in names:
-        print(f"ERRORE: {zip_path} non contiene {expected}. entries={names[:40]}", file=sys.stderr)
+from pathlib import Path
+
+def ok_zip(zip_path, expected_file):
+    zp = Path(zip_path)
+    names = [n.replace('\\', '/') for n in zipfile.ZipFile(zip_path).namelist()]
+    wrapper = zp.name[:-4] if zp.suffix.lower() == '.zip' else zp.stem
+    prefix = wrapper + '/'
+    if any(n.startswith('win-unpacked/') or n.startswith('win-ia32-unpacked/') or n.startswith('linux-unpacked/') for n in names):
+        print(f"ERRORE: {zip_path} contiene win-unpacked. entries={names[:40]}", file=sys.stderr)
+        sys.exit(1)
+    if not any(n == prefix + expected_file or n.endswith('/' + expected_file) for n in names):
+        print(f"ERRORE: {zip_path} non contiene {prefix}{expected_file}. entries={names[:40]}", file=sys.stderr)
         sys.exit(1)
     leftover = [n for n in names if "dupfinder" in n.lower()]
     if leftover:
         print(f"ERRORE: {zip_path} contiene ancora DupFinder: {leftover}", file=sys.stderr)
         sys.exit(1)
-    print(f"OK {zip_path} → {expected}")
+    print(f"OK {zip_path} → {prefix}{expected_file}")
+
+ok_zip("dist/DUPLO-1.0.0-win.zip", "DUPLO.exe")
+ok_zip("dist/DUPLO-1.0.0-ia32-win.zip", "DUPLO.exe")
+ok_zip("dist/DUPLO-linux-x64.zip", "DUPLO")
 PY
 
 (
