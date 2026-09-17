@@ -1,67 +1,37 @@
 /**
  * @file flattenWinZip.js
  * @description Hook electron-builder `afterAllArtifactBuild`.
- * Rigenera gli ZIP Windows con `archiver`: ogni entry è relativa a
- * `win-unpacked` / `win-ia32-unpacked`, quindi exe e dll stanno in RADICE
- * (niente cartella padre tipo DUPLO-win32-x64/).
+ *
+ * electron-builder lascia i binari in `dist/win-unpacked` (o `win-ia32-unpacked`).
+ * Questo hook rigenera lo ZIP così che, aprendo l'archivio, la cartella padre
+ * abbia **lo stesso nome del file zip** (es. `DUPLO-1.0.0-win-x64/DUPLO.exe`),
+ * non `win-unpacked/`.
  */
+
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
 /**
- * Crea uno zip i cui path sono relativi a `sourceDir` (nessun prefisso padre).
+ * Nome della cartella dentro lo zip = basename dell'archivio senza `.zip`.
  *
- * @param {string} sourceDir - es. dist/win-unpacked
- * @param {string} destZip
- * @returns {Promise<void>}
+ * @param {unknown} zipPath es. `dist/DUPLO-1.0.0-win-x64.zip`
+ * @returns {string}
  */
-function writeFlatZip(sourceDir, destZip) {
-  return new Promise((resolve, reject) => {
-    try {
-      const archiver = require('archiver');
-      const parent = path.dirname(destZip);
-      if (parent && !fs.existsSync(parent)) {
-        fs.mkdirSync(parent, { recursive: true });
-      }
-      const tmp = destZip + '.flat-tmp.zip';
-      const output = fs.createWriteStream(tmp);
-      // compressione standard: lo zip deve aprirsi su Explorer senza tool extra
-      const archive = archiver('zip', { zlib: { level: 9 } });
-
-      output.on('close', () => {
-        try {
-          fs.renameSync(tmp, destZip);
-          console.log(`[flattenWinZip] Scritti ${archive.pointer()} byte in ${destZip}`);
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      });
-      output.on('error', (err) => {
-        reject(err);
-      });
-      archive.on('warning', (err) => {
-        console.warn(`[flattenWinZip] warning: ${err.message}`);
-      });
-      archive.on('error', (err) => {
-        reject(err);
-      });
-
-      archive.pipe(output);
-      // `false` = non wrappare in una sottocartella: file in root dello zip
-      archive.directory(sourceDir, false);
-      archive.finalize();
-    } catch (err) {
-      reject(err);
-    }
-  });
+function zipWrapperName(zipPath) {
+  const base = path.basename(String(zipPath || ''));
+  const stem = base.replace(/\.zip$/i, '').trim();
+  return stem || 'DUPLO';
 }
 
 /**
+ * Cartella `dist/*-unpacked` da cui electron-builder ha copiato i binari.
+ * Non è il nome visibile nello zip: resta un dettaglio di build.
+ *
  * @param {string} zipPath
  * @param {string} outDir
- * @returns {string} cartella unpacked corrispondente
+ * @returns {string}
  */
 function unpackedDirForZip(zipPath, outDir) {
   const base = path.basename(zipPath).toLowerCase();
@@ -72,7 +42,57 @@ function unpackedDirForZip(zipPath, outDir) {
 }
 
 /**
+ * Scrive uno zip la cui unica cartella radice è `zipWrapperName(destZip)`.
+ *
+ * @param {string} sourceDir Cartella unpacked (file in radice: exe, dll, …).
+ * @param {string} destZip Percorso dello zip da produrre.
+ * @returns {Promise<void>}
+ * @throws {Error} Se `sourceDir` non esiste o archiver fallisce.
+ */
+function writeReleaseZip(sourceDir, destZip) {
+  const wrapper = zipWrapperName(destZip);
+  return new Promise((resolve, reject) => {
+    try {
+      const archiver = require('archiver');
+      const parent = path.dirname(destZip);
+      if (parent && !fs.existsSync(parent)) {
+        fs.mkdirSync(parent, { recursive: true });
+      }
+      const tmp = destZip + '.named-tmp.zip';
+      const output = fs.createWriteStream(tmp);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      output.on('close', () => {
+        try {
+          fs.renameSync(tmp, destZip);
+          console.log(`[flattenWinZip] ${archive.pointer()} byte in ${destZip} (cartella ${wrapper}/)`);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+      output.on('error', reject);
+      archive.on('warning', (err) => {
+        console.warn(`[flattenWinZip] warning: ${err.message}`);
+      });
+      archive.on('error', reject);
+
+      archive.pipe(output);
+      // Secondo argomento = prefisso dentro lo zip (non `false`: eviterebbe la cartella).
+      archive.directory(sourceDir, wrapper);
+      archive.finalize();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+/** @deprecated alias: il nome storico restava "piatto"; ora avvolge con il nome zip. */
+const writeFlatZip = writeReleaseZip;
+
+/**
  * Firma richiesta da electron-builder.
+ *
  * @param {{ artifactPaths?: string[], outDir?: string }} context
  * @returns {Promise<string[]>}
  */
@@ -94,8 +114,8 @@ async function flattenWinZip(context) {
         console.warn('[flattenWinZip] unpacked assente, salto', sourceDir);
         continue;
       }
-      console.log('[flattenWinZip] ZIP piatto:', zipPath, '←', sourceDir);
-      await writeFlatZip(sourceDir, zipPath);
+      console.log('[flattenWinZip] ZIP nominato:', zipPath, '←', sourceDir, '→', zipWrapperName(zipPath) + '/');
+      await writeReleaseZip(sourceDir, zipPath);
       rebuilt.push(zipPath);
     } catch (err) {
       console.error('[flattenWinZip] Errore su', zipPath, err.message);
@@ -107,5 +127,7 @@ async function flattenWinZip(context) {
 
 module.exports = flattenWinZip;
 module.exports.default = flattenWinZip;
+module.exports.writeReleaseZip = writeReleaseZip;
 module.exports.writeFlatZip = writeFlatZip;
 module.exports.unpackedDirForZip = unpackedDirForZip;
+module.exports.zipWrapperName = zipWrapperName;

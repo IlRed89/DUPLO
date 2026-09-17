@@ -23,7 +23,7 @@ Confronta l'hash con `SHA256SUMS.txt` nella stessa release.
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows ha protetto il PC** (SmartScreen): **Ulteriori informazioni** → **Esegui comunque**. L'eseguibile non è firmato.
 
-Lo zip Windows è **piatto**: dopo l'estrazione trovi `DUPLO.exe` e le `.dll` nella stessa cartella, senza una sottocartella padre. Non spostare solo l'exe.
+Lo zip contiene una cartella **con lo stesso nome dell'archivio** (es. `DUPLO-1.0.0-win-x64`), non `win-unpacked`. Dentro trovi `DUPLO.exe` e le `.dll`. Non spostare solo l'exe.
 
 ## Linux
 

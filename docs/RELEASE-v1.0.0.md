@@ -1,6 +1,6 @@
 # DUPLO 1.0.0
 
-Release stabile definitiva. Estrai lo zip e avvia `DUPLO.exe` / `DUPLO` **nella stessa cartella** (serve insieme a dll/pak). Non è un exe unico.
+Release stabile definitiva. Estrai lo zip: trovi una cartella **con lo stesso nome dell'archivio** (es. `DUPLO-1.0.0-win-x64`). Avvia `DUPLO.exe` / `DUPLO` **dentro quella cartella** (serve insieme a dll/pak). Non è un exe unico.
 
 ## Download
 

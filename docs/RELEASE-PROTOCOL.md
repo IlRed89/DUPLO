@@ -10,7 +10,7 @@ Ogni modifica, bugfix o chiusura issue di **DUPLO** non è completa senza le qua
 - Badge UI `src/renderer/index.html` allineato a `vX.Y.Z`.
 - Note in `docs/RELEASE-vX.Y.Z.md`.
 
-## 2. Asset ZIP 32/64 bit (senza cartelle intermedie)
+## 2. Asset ZIP 32/64 bit
 
 Da Windows, Node 20/22, dopo `npm ci` (e `npm run icons` se manca `build/icon.ico`):
 
@@ -19,7 +19,7 @@ npm run build -- --win zip --x64
 npm run build -- --win zip --ia32
 ```
 
-`npm run build` è `electron-builder`. `scripts/flattenWinZip.js` produce zip **piatti** (exe e dll in radice).
+`npm run build` è `electron-builder`. `scripts/flattenWinZip.js` mette i file in una cartella **omonima allo zip** (es. `DUPLO-1.0.0-win-x64/`), non in `win-unpacked/`.
 
 | Comando | File in `dist/` | Unpacked |
 | --- | --- | --- |
