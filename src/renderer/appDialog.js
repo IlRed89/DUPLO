@@ -63,7 +63,7 @@
    *   confirmLabel?: string,
    *   cancelLabel?: string
    * }} opts
-   * @returns {Promise<{ ok: boolean, value: string }>
+   * @returns {Promise<{ ok: boolean, value: string }>}
    */
   function open(opts) {
     const options = opts && typeof opts === 'object' ? opts : {};
@@ -134,7 +134,7 @@
   /**
    * Avviso / errore (un pulsante OK).
    * @param {{ kind?: 'info'|'warning'|'error', title: string, message: string, html?: boolean }} opts
-   * @returns {Promise<{ ok: boolean, value: string }>
+   * @returns {Promise<{ ok: boolean, value: string }>}
    */
   function alertDialog(opts) {
     const kind = opts && opts.kind ? opts.kind : 'warning';
