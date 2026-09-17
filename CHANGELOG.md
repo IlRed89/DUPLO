@@ -15,7 +15,10 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 
 - Scansione duplicati per dimensione, contenuto (hash SHA-256 o MD5 a due step), nome, estensione e data di modifica.
 - Filtri avanzati: estensioni, intervallo date, dimensione min/max, categorie file, nomi simili.
-- Menu nativo italiano/inglese, guida in-app (README), log persistenti, export CSV/JSON, pulizia con conferma.
+- Menu nativo e UI in italiano (default), inglese, spagnolo e francese; dizionari in `src/locales/`. Cambio lingua immediato sul DOM + IPC per i menu nativi; preferenza in `localStorage`.
+- Tema chiaro/scuro con variabili CSS (`--bg-primary`, `--text-primary`, `--accent-color`, …) persistito in `localStorage` e allineato a `nativeTheme.themeSource`.
+- Risultati nel pannello destro sezionati per criterio di rilevamento (`matchReason`: hash, size, name, fuzzy), sezioni collassabili, checkbox, Apri percorso, Rinomina.
+- Menu nativo italiano/inglese/spagnolo/francese, guida in-app (README), log persistenti, export CSV/JSON, pulizia con conferma.
 - Overlay drag & drop a tutta finestra («Trascina qui le cartelle»): path nativo nel preload con `webUtils.getPathForFile`, contatore anti-flicker, validazione cartella nel Main (`fs.promises.stat` + `isDirectory()`). I file singoli restano ignorati.
 - ZIP Windows x64 e ia32 e ZIP Linux x64. Dentro ogni archivio la cartella ha **lo stesso nome dello zip** (es. `DUPLO-1.0.0-win-x64/`), non `win-unpacked`.
 - Identità prodotto **DUPLO**: `name` `duplo`, `productName` / `executableName` `DUPLO`, `app.setName('DUPLO')`, titolo finestra `DUPLO - Trova File Duplicati`.

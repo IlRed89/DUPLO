@@ -10,7 +10,7 @@ const fsp = fs.promises;
 const path = require('path');
 const os = require('os');
 const { computePartialHash, computeFullHash } = require('./hasher');
-const { findDuplicates, ScanCancellationToken } = require('./scanner');
+const { findDuplicates, ScanCancellationToken, classifyMatchReason } = require('./scanner');
 const { getCategoryExtensions } = require('./fileCategories');
 
 test('Hasher: calcolo corretto di partial hash e full hash su file identici', async () => {
@@ -70,6 +70,7 @@ test('Scanner: identificazione corretta di duplicati con filtri multipli e crite
   assert.equal(groups.length, 1, 'Deve essere individuato esattamente 1 gruppo di duplicati');
   assert.equal(groups[0].files.length, 2, 'Il gruppo duplicato deve contenere esattamente 2 file');
   assert.equal(groups[0].wastedBytes, groups[0].size, 'Lo spazio sprecato calcolato deve corrispondere alla dimensione del duplicato');
+  assert.equal(groups[0].matchReason, 'hash', 'Con hashing attivo il criterio è hash');
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
@@ -161,6 +162,7 @@ test('Scanner: Nomi Simili raggruppa remix senza richiedere hash identico', asyn
   const groups = await findDuplicates([tmpDir], criteria, new ScanCancellationToken(), () => {});
   assert.equal(groups.length, 1, 'I due mp3 devono formare un solo gruppo fuzzy');
   assert.equal(groups[0].files.length, 2);
+  assert.equal(groups[0].matchReason, 'fuzzy');
   assert.ok(groups[0].files.every((f) => /Canzone/i.test(f.name)));
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
@@ -180,4 +182,64 @@ test('Hasher: percorso vuoto rifiutato senza UnhandledPromiseRejection', async (
 test('Scanner: elenco cartelle vuoto o path non validi lancia a monte', async () => {
   await assert.rejects(() => findDuplicates([], {}, new ScanCancellationToken(), () => {}), /almeno una cartella/);
   await assert.rejects(() => findDuplicates(['', '   '], {}, new ScanCancellationToken(), () => {}), /Nessun percorso cartella valido/);
+});
+
+test('classifyMatchReason: priorità hash > fuzzy > name > size', () => {
+  assert.equal(classifyMatchReason({ matchName: true, matchSize: true }, { hashed: true }), 'hash');
+  assert.equal(classifyMatchReason({ matchFuzzyName: true, matchSize: true }, { fuzzyApplied: true }), 'fuzzy');
+  assert.equal(classifyMatchReason({ matchName: true, matchSize: true }, {}), 'name');
+  assert.equal(classifyMatchReason({ matchSize: true }, {}), 'size');
+});
+
+test('Scanner: stesso nome esatto senza hash classifica matchReason=name', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-name-'));
+  await fsp.writeFile(path.join(tmpDir, 'stesso.txt'), 'alpha');
+  await fsp.mkdir(path.join(tmpDir, 'sub'));
+  await fsp.writeFile(path.join(tmpDir, 'sub', 'stesso.txt'), 'beta-diverso');
+
+  const groups = await findDuplicates([tmpDir], {
+    matchName: true,
+    matchSize: false,
+    matchHash: false,
+    matchFuzzyName: false,
+    matchExtension: false,
+    matchDate: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: [],
+    excludeExtensions: [],
+    includeHidden: false
+  }, new ScanCancellationToken(), () => {});
+
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].matchReason, 'name');
+  assert.equal(groups[0].files.length, 2);
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('Scanner: sola dimensione senza hash classifica matchReason=size', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-size-'));
+  const payload = 'xxxx';
+  await fsp.writeFile(path.join(tmpDir, 'a.bin'), payload);
+  await fsp.writeFile(path.join(tmpDir, 'b.bin'), payload);
+
+  const groups = await findDuplicates([tmpDir], {
+    matchName: false,
+    matchSize: true,
+    matchHash: false,
+    matchFuzzyName: false,
+    matchExtension: false,
+    matchDate: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: [],
+    excludeExtensions: [],
+    includeHidden: false
+  }, new ScanCancellationToken(), () => {});
+
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].matchReason, 'size');
+  await fsp.rm(tmpDir, { recursive: true, force: true });
 });

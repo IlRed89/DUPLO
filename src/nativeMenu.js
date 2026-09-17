@@ -7,6 +7,8 @@
  * - il Renderer non può toccare `Menu` (vive nel Main Process);
  * - quando l'utente cambia lingua, il Main ricostruisce l'intero template
  *   con `Menu.buildFromTemplate()` e lo applica con `Menu.setApplicationMenu()`.
+ *
+ * Lingue: italiano (default), inglese, spagnolo, francese.
  */
 
 const { logger } = require('./logger');
@@ -14,18 +16,19 @@ const { logger } = require('./logger');
 /**
  * Lingua attualmente applicata alla barra nativa.
  * Serve per evitare ricostruzioni inutili e per i log di diagnostica.
- * @type {'it'|'en'}
+ * @type {'it'|'en'|'es'|'fr'}
  */
 let currentMenuLanguage = 'it';
 
 /**
  * Dizionario delle etichette. Solo stringhe visibili: i `role` Electron
  * restano in inglese (undo, copy, quit…) perché sono identificatori interni.
- * @type {Record<'it'|'en', Record<string, string>>}
+ * @type {Record<'it'|'en'|'es'|'fr', Record<string, string>>}
  */
 const MENU_STRINGS = {
   it: {
     appMenu: 'DUPLO',
+    windowTitle: 'DUPLO - Trova File Duplicati',
     file: 'File',
     fileQuit: 'Esci',
     edit: 'Modifica',
@@ -52,6 +55,7 @@ const MENU_STRINGS = {
   },
   en: {
     appMenu: 'DUPLO',
+    windowTitle: 'DUPLO - Find Duplicate Files',
     file: 'File',
     fileQuit: 'Quit',
     edit: 'Edit',
@@ -75,22 +79,78 @@ const MENU_STRINGS = {
     helpGuide: 'User Guide (README)',
     helpLogs: 'Open log folder',
     helpWebsite: 'GitHub page'
+  },
+  es: {
+    appMenu: 'DUPLO',
+    windowTitle: 'DUPLO - Buscar archivos duplicados',
+    file: 'Archivo',
+    fileQuit: 'Salir',
+    edit: 'Editar',
+    editUndo: 'Deshacer',
+    editRedo: 'Rehacer',
+    editCut: 'Cortar',
+    editCopy: 'Copiar',
+    editPaste: 'Pegar',
+    editSelectAll: 'Seleccionar todo',
+    view: 'Ver',
+    viewReload: 'Recargar',
+    viewDevTools: 'Herramientas de desarrollador',
+    viewZoomIn: 'Acercar',
+    viewZoomOut: 'Alejar',
+    viewZoomReset: 'Tamaño real',
+    viewFullScreen: 'Pantalla completa',
+    window: 'Ventana',
+    windowMinimize: 'Minimizar',
+    windowClose: 'Cerrar',
+    help: 'Ayuda',
+    helpGuide: 'Guía (README)',
+    helpLogs: 'Abrir carpeta de registros',
+    helpWebsite: 'Página de GitHub'
+  },
+  fr: {
+    appMenu: 'DUPLO',
+    windowTitle: 'DUPLO - Trouver les fichiers en double',
+    file: 'Fichier',
+    fileQuit: 'Quitter',
+    edit: 'Édition',
+    editUndo: 'Annuler',
+    editRedo: 'Rétablir',
+    editCut: 'Couper',
+    editCopy: 'Copier',
+    editPaste: 'Coller',
+    editSelectAll: 'Tout sélectionner',
+    view: 'Affichage',
+    viewReload: 'Recharger',
+    viewDevTools: 'Outils de développement',
+    viewZoomIn: 'Zoom avant',
+    viewZoomOut: 'Zoom arrière',
+    viewZoomReset: 'Taille réelle',
+    viewFullScreen: 'Plein écran',
+    window: 'Fenêtre',
+    windowMinimize: 'Réduire',
+    windowClose: 'Fermer',
+    help: 'Aide',
+    helpGuide: 'Guide (README)',
+    helpLogs: 'Ouvrir le dossier des journaux',
+    helpWebsite: 'Page GitHub'
   }
 };
 
 /**
  * Normalizza il codice lingua arrivato dal Renderer.
- * Accettiamo "it", "it-IT", "en", "en-US"; qualsiasi altro valore torna all'italiano
- * (lingua di default dell'applicazione).
+ * Accettiamo it/en/es/fr (anche con regione, es. "fr-FR"); qualsiasi altro
+ * valore torna all'italiano (lingua di default dell'applicazione).
  *
  * @param {unknown} lang
- * @returns {'it'|'en'}
+ * @returns {'it'|'en'|'es'|'fr'}
  */
 function normalizeLanguage(lang) {
   try {
     const raw = String(lang || 'it').trim().toLowerCase();
     const short = raw.split(/[-_]/)[0];
-    if (short === 'en') return 'en';
+    if (short === 'en' || short === 'es' || short === 'fr' || short === 'it') {
+      return short;
+    }
     return 'it';
   } catch (err) {
     logger.warn(`[Menu] Lingua non valida "${lang}": ${err.message}. Uso italiano.`);
@@ -101,7 +161,7 @@ function normalizeLanguage(lang) {
 /**
  * Costruisce il template Electron per la lingua indicata.
  *
- * @param {'it'|'en'} lang
+ * @param {'it'|'en'|'es'|'fr'} lang
  * @param {{ openGuide?: function(): void, openLogs?: function(): void }} [actions]
  * @returns {Electron.MenuItemConstructorOptions[]}
  */
@@ -219,9 +279,9 @@ function buildMenuTemplate(lang, actions = {}) {
  * Ricostruisce e applica la barra dei menu nativa nella lingua richiesta.
  * Chiamata all'avvio (italiano) e ad ogni IPC `language-changed` (`invoke`).
  *
- * @param {unknown} lang - Codice lingua dal Renderer (es. "it", "en-US")
+ * @param {unknown} lang - Codice lingua dal Renderer (es. "it", "en-US", "es", "fr")
  * @param {{ openGuide?: function(): void, openLogs?: function(): void }} [actions]
- * @returns {'it'|'en'} Lingua effettivamente applicata
+ * @returns {'it'|'en'|'es'|'fr'} Lingua effettivamente applicata
  */
 function createNativeMenu(lang, actions = {}) {
   const normalized = normalizeLanguage(lang);
@@ -242,10 +302,22 @@ function createNativeMenu(lang, actions = {}) {
 }
 
 /**
- * @returns {'it'|'en'}
+ * @returns {'it'|'en'|'es'|'fr'}
  */
 function getCurrentMenuLanguage() {
   return currentMenuLanguage;
+}
+
+/**
+ * Titolo finestra localizzato (Main Process, `BrowserWindow.setTitle`).
+ *
+ * @param {unknown} [lang]
+ * @returns {string}
+ */
+function getWindowTitle(lang) {
+  const code = lang ? normalizeLanguage(lang) : currentMenuLanguage;
+  const dict = MENU_STRINGS[code] || MENU_STRINGS.it;
+  return dict.windowTitle;
 }
 
 module.exports = {
@@ -253,5 +325,6 @@ module.exports = {
   normalizeLanguage,
   buildMenuTemplate,
   createNativeMenu,
-  getCurrentMenuLanguage
+  getCurrentMenuLanguage,
+  getWindowTitle
 };
