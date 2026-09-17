@@ -1,7 +1,7 @@
 /**
  * @file formatBytes.js
  * @description Formattazione dimensioni in unità IEC-approssimate (1024).
- * Condiviso tra Main (export CSV) e Renderer (statistiche UI) per un solo algoritmo.
+ * Condiviso tra Renderer (statistiche UI) e test per un solo algoritmo.
  */
 (function (root, factory) {
   const api = factory();
