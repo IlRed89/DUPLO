@@ -358,10 +358,15 @@
   height: 100vh;
   background: var(--bg-modal-overlay);
   backdrop-filter: blur(4px);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 20000;
+  pointer-events: auto;
+}
+
+.modal-overlay.is-open {
+  display: flex;
 }
 
 .modal-dialog {
@@ -761,11 +766,21 @@
   align-items: center;
   gap: 0.35rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 .file-row-actions .btn,
 .file-row-actions .btn-icon {
   flex-shrink: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.btn-rename {
+  position: relative;
+  z-index: 4;
 }
 
 .file-check {
