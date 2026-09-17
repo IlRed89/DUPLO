@@ -278,3 +278,4 @@ function initSplitter() {
     document.body.classList.remove('is-resizing');
   });
 }
+
