@@ -589,6 +589,7 @@ body.is-resizing * {
   border: 1px solid transparent;
   transition: all 0.2s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -847,6 +848,7 @@ body.is-resizing * {
   font-size: 0.8rem;
   transition: background-color 0.15s;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .file-row:last-child {
@@ -866,7 +868,8 @@ body.is-resizing * {
   align-items: center;
   gap: 0.65rem;
   overflow: hidden;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .file-tag {
@@ -875,6 +878,7 @@ body.is-resizing * {
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .file-tag.tag-original {
@@ -889,11 +893,20 @@ body.is-resizing * {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.file-path-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .file-path-text {
   font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-overflow: clip;
   white-space: nowrap;
+  display: block;
   color: var(--text-path);
   cursor: pointer;
 }
@@ -909,6 +922,7 @@ body.is-resizing * {
   color: var(--text-muted);
   font-size: 0.75rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-icon {
@@ -1334,9 +1348,21 @@ body.is-resizing * {
   flex-shrink: 0;
 }
 
+.file-row-actions .btn,
+.file-row-actions .btn-icon {
+  flex-shrink: 0;
+}
+
 .file-check {
   flex-shrink: 0;
   accent-color: var(--accent-color);
+}
+
+.group-criteria {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  white-space: nowrap;
 }
 
 .file-mtime {
