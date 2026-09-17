@@ -11,7 +11,7 @@
  *    bucket con ≥ 2 candidati, che puntano agli stessi oggetti file.
  * 3. Hash a due step (opzionale): 1 MiB di testa, poi stream completo a 64 KiB.
  *
- * Path: `path.resolve` + `path.normalize` unifica separatori Windows (`\\`) e
+ * Path: `path.resolve` + `path.normalize` unifica separatori Windows (`\`) e
  * POSIX (`/`). Permessi: EACCES/EPERM su una cartella non abortiscono la
  * scansione — si logga e si prosegue sulle voci accessibili.
  */
