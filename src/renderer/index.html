@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DUPLO - Trova File Duplicati</title>
-  <!-- Stili locali: nessun font o CSS da CDN, così l'app resta usabile offline. -->
   <link rel="stylesheet" href="styles.css">
-  <!-- Applica lingua/tema da localStorage prima del primo paint (niente flash). -->
   <script>
     (function () {
       try {
@@ -20,20 +18,14 @@
   </script>
 </head>
 <body>
-
-  <!-- Overlay drop full-window: visibile con .active. I figli hanno pointer-events:none
-       (anti-flicker). preventDefault su window+overlay; path via webUtils.getPathForFile. -->
   <div id="drag-overlay" class="drag-overlay" aria-hidden="true">
     <div class="drag-overlay-panel" role="status" aria-live="polite">
       <p class="drag-overlay-title" data-i18n="drop.title">Trascina qui le cartelle</p>
       <p class="drag-overlay-hint" data-i18n="drop.hint">Rilascia ovunque nella finestra per aggiungerle alla scansione</p>
     </div>
   </div>
-
-  <!-- Header Superiore dell'Applicazione -->
   <header class="app-header">
     <div class="brand">
-      <!-- Icona Fase 1: stesso SVG in build/icon.svg, incorporato (nessun download). -->
       <img class="brand-icon" src="../../build/icon.svg" width="36" height="36" alt="DUPLO">
       <div class="brand-text">
         <h1>DUPLO <span class="badge">v1.0.0</span></h1>
@@ -63,15 +55,9 @@
       </button>
     </div>
   </header>
-
-  <!-- Corpo dell'Applicazione a 2 Colonne -->
   <div class="app-body">
-    
-    <!-- PANNELLO LATERALE: Selezione Cartelle e Parametri -->
     <aside class="sidebar-panel">
       <div class="sidebar-scroll">
-      
-      <!-- Sezione Cartelle di Origine -->
       <section class="panel-section">
         <div class="section-title">
           <span data-i18n="folders.title">Cartelle da analizzare</span>
@@ -90,16 +76,13 @@
           </button>
         </div>
       </section>
-
-      <!-- Sezione Criteri di Confronto -->
       <section class="panel-section">
         <div class="section-title">
           <span data-i18n="criteria.title">Parametri di Confronto</span>
         </div>
         <div class="criteria-grid">
-          
           <label class="criteria-card">
-            <input type="checkbox" id="chkMatchSize" checked>
+            <input type="checkbox" id="chkMatchSize">
             <div class="criteria-info">
               <span class="criteria-title">
                 <span data-i18n="criteria.size">Stessa Dimensione</span> <span class="tag-badge" data-i18n="criteria.recommended">Raccomandato</span>
@@ -107,9 +90,8 @@
               <span class="criteria-desc" data-i18n="criteria.sizeDesc">Confronto preliminare istantaneo in byte</span>
             </div>
           </label>
-
           <label class="criteria-card">
-            <input type="checkbox" id="chkMatchHash" checked>
+            <input type="checkbox" id="chkMatchHash">
             <div class="criteria-info">
               <span class="criteria-title">
                 <span data-i18n="criteria.hash">Hash Contenuto (2-Step)</span>
@@ -117,7 +99,6 @@
               <span class="criteria-desc" data-i18n="criteria.hashDesc">Chunk 1MB + SHA-256/MD5 completo (byte-identico)</span>
             </div>
           </label>
-
           <label class="criteria-card">
             <input type="checkbox" id="chkMatchName">
             <div class="criteria-info">
@@ -125,7 +106,6 @@
               <span class="criteria-desc" data-i18n="criteria.nameDesc">I file devono avere lo stesso nome esatto</span>
             </div>
           </label>
-
           <label class="criteria-card">
             <input type="checkbox" id="chkMatchFuzzyName">
             <div class="criteria-info">
@@ -133,7 +113,6 @@
               <span class="criteria-desc" data-i18n="criteria.fuzzyDesc">Raggruppa nomi ≥ 80% (es. Canzone.mp3 e Canzone (Remix).mp3)</span>
             </div>
           </label>
-
           <label class="criteria-card">
             <input type="checkbox" id="chkMatchExtension">
             <div class="criteria-info">
@@ -141,7 +120,6 @@
               <span class="criteria-desc" data-i18n="criteria.extDesc">Richiede identica estensione (.jpg, .pdf...)</span>
             </div>
           </label>
-
           <label class="criteria-card">
             <input type="checkbox" id="chkMatchDate">
             <div class="criteria-info">
@@ -149,10 +127,8 @@
               <span class="criteria-desc" data-i18n="criteria.dateDesc">Timestamp di ultima scrittura sul disco</span>
             </div>
           </label>
-
         </div>
       </section>
-
       <section class="panel-section">
         <div class="section-title">
           <span data-i18n="filters.title">Filtri Avanzati</span>
@@ -185,7 +161,6 @@
           <input type="checkbox" id="chkIncludeHidden"> <span data-i18n="filters.hidden">Includi cartelle e file nascosti</span>
         </label>
       </section>
-
       <section class="panel-section">
         <details class="advanced-search" id="advancedSearchPanel">
           <summary id="advancedSearchSummary" data-i18n="advanced.summary">Ricerca Avanzata</summary>
@@ -219,14 +194,13 @@
               <label for="selectSizeUnit" data-i18n="advanced.sizeUnit">Unità dimensione (min/max avanzati)</label>
               <select id="selectSizeUnit" class="input-field">
                 <option value="kb" selected data-i18n="advanced.unitKb">KB</option>
-                <option value="mb" data-i18n="advanced.unitMb">MB</option>
+                <option value="mb" selected data-i18n="advanced.unitMb">MB</option>
               </select>
             </div>
           </div>
         </details>
       </section>
       </div>
-
       <div class="sidebar-actions">
         <button class="btn btn-primary" id="btnStartScan">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -245,13 +219,9 @@
           <span data-i18n="scan.cancel">Interrompi Scansione</span>
         </button>
       </div>
-
     </aside>
-
     <div class="panel-splitter" id="panelSplitter" role="separator" aria-orientation="vertical" data-i18n-aria="splitter.label" aria-label="Ridimensiona i pannelli"></div>
-
     <main class="main-content">
-      
       <div class="scan-progress-bar-container" id="progressBarSection" style="display: none;">
         <div class="progress-header">
           <div class="progress-phase" id="progressPhaseText">
@@ -265,7 +235,6 @@
         </div>
         <div class="progress-status-text" id="progressStatusDetail" data-i18n="progress.init">Inizializzazione indicizzazione file...</div>
       </div>
-
       <div class="stats-banner" id="statsBanner" style="display: none;">
         <div class="stat-box">
           <span class="stat-label" data-i18n="stats.files">File Analizzati</span>
@@ -280,11 +249,10 @@
           <span class="stat-number" id="statDuplicatesCount">0</span>
         </div>
         <div class="stat-box">
-          <span class="stat-label" data-i18n="stats.wasted">Spazio Recuperabile</span>
-          <span class="stat-number highlight-danger" id="statWastedSpace">0 B</span>
+          <span class="stat-label" data-i18n="stats.size">Dimensione</span>
+          <span class="stat-number" id="statTotalSize">0 B</span>
         </div>
       </div>
-
       <div class="results-toolbar" id="resultsToolbar" style="display: none;">
         <div class="toolbar-left">
           <span style="font-size: 0.85rem; font-weight: 600;" data-i18n="results.title">Elenco Duplicati Trovati</span>
@@ -293,18 +261,11 @@
           <button class="btn btn-secondary btn-sm" id="btnDeleteSelected">
             <span data-i18n="results.deleteSelected">Elimina selezionati</span>
           </button>
-          <button class="btn btn-secondary btn-sm" id="btnExportJSON">
-            <span data-i18n="results.exportJson">Esporta JSON</span>
-          </button>
-          <button class="btn btn-secondary btn-sm" id="btnExportCSV">
-            <span data-i18n="results.exportCsv">Esporta CSV</span>
-          </button>
           <button class="btn btn-danger btn-sm" id="btnBatchClean">
             <span data-i18n="results.batchClean">Pulizia Rapida Duplicati</span>
           </button>
         </div>
       </div>
-
       <div class="results-scroll-area" id="resultsScrollContainer">
         <div class="empty-placeholder" id="emptyPlaceholder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -313,14 +274,12 @@
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
           <h2 id="emptyPlaceholderTitle" data-i18n="results.emptyTitle">Nessuna scansione eseguita</h2>
-          <p id="emptyPlaceholderText" data-i18n="results.emptyText">Aggiungi cartelle dal pannello a sinistra (pulsante o trascinandole da Esplora file), scegli la categoria e i parametri, poi avvia la scansione.</p>
+          <p id="emptyPlaceholderText" data-i18n="results.emptyText">Aggiungi cartelle dal pannello a sinistra (pulsante o trascinandole da Esplora file), spunta esplicitamente i parametri di confronto, poi avvia la scansione.</p>
         </div>
         <div id="resultsList"></div>
       </div>
-
     </main>
   </div>
-
   <div class="guide-overlay" id="guideOverlay" hidden>
     <div class="guide-panel" role="dialog" aria-labelledby="guideTitle" aria-modal="true">
       <div class="guide-header">
@@ -336,29 +295,32 @@
       <article class="guide-content" id="guideContent"></article>
     </div>
   </div>
-
-  <div class="modal-overlay" id="confirmModal" style="display: none;">
-    <div class="modal-dialog">
+  <div class="modal-overlay" id="confirmModal" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-header">
+        <span class="modal-kind-dot" aria-hidden="true"></span>
         <h3 id="modalTitle" data-i18n="modal.confirmTitle">Conferma Operazione</h3>
       </div>
-      <div class="modal-body" id="modalMessage">
-        Sei sicuro di voler procedere?
+      <div class="modal-body">
+        <div id="modalMessage">Sei sicuro di voler procedere?</div>
+        <div id="modalInputWrap" class="modal-input-wrap" hidden>
+          <label class="sr-only" for="modalInput" data-i18n="modal.renameLabel">Nuovo nome file</label>
+          <input type="text" id="modalInput" class="input-field" autocomplete="off" spellcheck="false">
+        </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary btn-sm" id="btnModalCancel"><span data-i18n="modal.cancel">Annulla</span></button>
-        <button class="btn btn-danger btn-sm" id="btnModalConfirm"><span data-i18n="modal.confirmDelete">Conferma ed Elimina</span></button>
+        <button class="btn btn-secondary btn-sm" id="btnModalCancel" type="button"><span data-i18n="modal.cancel">Annulla</span></button>
+        <button class="btn btn-primary btn-sm" id="btnModalConfirm" type="button"><span data-i18n="modal.ok">OK</span></button>
       </div>
     </div>
   </div>
-
-  <!-- UMD condivisi Main/Renderer: caricati prima di renderer.js. -->
   <script src="../formatBytes.js"></script>
   <script src="../fileCategories.js"></script>
   <script src="../advancedFilters.js"></script>
   <script src="../i18n.js"></script>
   <script src="splitterMath.js"></script>
   <script src="markdown.js"></script>
+  <script src="appDialog.js"></script>
   <script src="renderer.js"></script>
   <script src="resultsView.js"></script>
 </body>
