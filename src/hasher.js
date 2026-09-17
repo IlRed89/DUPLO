@@ -41,11 +41,15 @@ function normalizeAlgorithm(algorithm) {
  * @returns {void}
  */
 function destroyStream(stream) {
-  if (!stream) return;
+  if (!stream) {
+    return;
+  }
   try {
-    stream.removeAllListeners();
+    if (typeof stream.pause === 'function') {
+      stream.pause();
+    }
   } catch (_err) {
-    /* stream già chiuso */
+    /* pause su stream ended */
   }
   try {
     if (!stream.destroyed && typeof stream.destroy === 'function') {
@@ -77,24 +81,58 @@ function hashFileStream(filePath, algorithm, streamOptions, onProgress) {
     let stream = null;
     const hash = crypto.createHash(normalizeAlgorithm(algorithm));
     let bytesRead = 0;
+    let pendingErr = null;
+    let pendingDigest = null;
+    let closing = false;
 
     /**
-     * Chiude lo stream una sola volta e completa la Promise.
+     * Completa la Promise una sola volta. Va chiamato SOLO dopo `close`
+     * (fd rilasciato): resolve-on-end lasciava il descriptor aperto e su
+     * Windows il rename successivo falliva con EBUSY.
+     * @returns {void}
+     */
+    const finish = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (pendingErr) {
+        reject(pendingErr);
+      } else {
+        resolve(pendingDigest);
+      }
+    };
+
+    /**
+     * Distrugge lo stream e attende `close` prima di finish().
      * @param {Error|null} err
      * @param {string|null} digest
+     * @returns {void}
      */
-    const settle = (err, digest) => {
-      if (settled) return;
-      settled = true;
+    const closeThenFinish = (err, digest) => {
+      if (settled || closing) {
+        return;
+      }
+      closing = true;
+      pendingErr = err;
+      pendingDigest = digest;
+      if (!stream) {
+        finish();
+        return;
+      }
+      const onClosed = () => {
+        logger.debug('[Hasher] stream chiuso (fd rilasciato) per "' + target + '"');
+        finish();
+      };
+      stream.once('close', onClosed);
       destroyStream(stream);
-      if (err) reject(err);
-      else resolve(digest);
+      setTimeout(onClosed, 400);
     };
 
     try {
-      stream = fs.createReadStream(target, streamOptions);
+      stream = fs.createReadStream(target, Object.assign({ autoClose: true }, streamOptions || {}));
     } catch (err) {
-      settle(err, null);
+      closeThenFinish(err, null);
       return;
     }
 
@@ -102,30 +140,24 @@ function hashFileStream(filePath, algorithm, streamOptions, onProgress) {
       try {
         hash.update(chunk);
         bytesRead += chunk.length;
-        if (typeof onProgress === 'function') onProgress(bytesRead);
+        if (typeof onProgress === 'function') {
+          onProgress(bytesRead);
+        }
       } catch (err) {
-        settle(err, null);
+        closeThenFinish(err, null);
       }
     });
 
     stream.on('end', () => {
       try {
-        settle(null, hash.digest('hex'));
+        closeThenFinish(null, hash.digest('hex'));
       } catch (err) {
-        settle(err, null);
+        closeThenFinish(err, null);
       }
     });
 
     stream.on('error', (err) => {
-      settle(err, null);
-    });
-
-    // `close` copre il caso Windows in cui il descriptor viene chiuso
-    // (antivirus, lock) senza un `end` pulito: senza settle la Promise resterebbe appesa.
-    stream.on('close', () => {
-      if (!settled) {
-        settle(new Error('Stream di lettura chiuso prima del digest hash'), null);
-      }
+      closeThenFinish(err, null);
     });
   });
 }
