@@ -42,6 +42,7 @@
     const nodes = els();
     if (nodes.overlay) {
       nodes.overlay.style.display = 'none';
+      nodes.overlay.classList.remove('is-open');
       nodes.overlay.setAttribute('aria-hidden', 'true');
     }
     const resolve = resolver;
@@ -66,6 +67,7 @@
    * @returns {Promise<{ ok: boolean, value: string }>}
    */
   function open(opts) {
+    bindDialogControls();
     const options = opts && typeof opts === 'object' ? opts : {};
     const kind = options.kind || 'info';
     if (resolver) {
@@ -75,6 +77,13 @@
       resolver = resolve;
       const nodes = els();
       if (!nodes.overlay || !nodes.dialog) {
+        try {
+          if (window.duploAPI && typeof window.duploAPI.logRendererEvent === 'function') {
+            window.duploAPI.logRendererEvent('error', '[Dialog] #confirmModal assente, kind=' + kind);
+          }
+        } catch (_err) {
+          /* ignore */
+        }
         resolve({ ok: false, value: '' });
         return;
       }
@@ -111,7 +120,9 @@
         const span = nodes.cancel.querySelector('span') || nodes.cancel;
         span.textContent = cancelLabel;
       }
+      nodes.overlay.classList.add('is-open');
       nodes.overlay.style.display = 'flex';
+      nodes.overlay.style.zIndex = '20000';
       nodes.overlay.setAttribute('aria-hidden', 'false');
       try {
         if (window.duploAPI && typeof window.duploAPI.logRendererEvent === 'function') {
@@ -215,23 +226,47 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  let controlsBound = false;
+
+  /**
+   * Bind OK/Annulla/overlay/Escape. Idempotente. Non aspetta DOMContentLoaded
+   * se il markup del modal è già nel documento (script in fondo a index.html).
+   * @returns {void}
+   */
+  function bindDialogControls() {
+    if (controlsBound) {
+      return;
+    }
     const nodes = els();
+    if (!nodes.overlay) {
+      return;
+    }
+    controlsBound = true;
     if (nodes.confirm) {
       nodes.confirm.addEventListener('click', onConfirmClick);
     }
     if (nodes.cancel) {
       nodes.cancel.addEventListener('click', onCancelClick);
     }
-    if (nodes.overlay) {
-      nodes.overlay.addEventListener('click', function (event) {
-        if (event.target === nodes.overlay) {
-          finish(false, '');
-        }
-      });
-    }
+    nodes.overlay.addEventListener('click', function (event) {
+      if (event.target === nodes.overlay) {
+        finish(false, '');
+      }
+    });
     document.addEventListener('keydown', onKeyDown);
-  });
+    try {
+      if (window.duploAPI && typeof window.duploAPI.logRendererEvent === 'function') {
+        window.duploAPI.logRendererEvent('info', '[Dialog] controlli OK/Annulla agganciati');
+      }
+    } catch (_err) {
+      /* ignore */
+    }
+  }
+
+  bindDialogControls();
+  if (!controlsBound) {
+    document.addEventListener('DOMContentLoaded', bindDialogControls);
+  }
 
   root.DuploDialog = {
     open: open,
