@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Sovrascrive app.asar negli zip unpacked con il sorgente corrente e pubblica
 # la GitHub Release tag = v$(package.json version).
+# Ogni zip prodotto ha una cartella radice omonima all'archivio
+# (DUPLO-x.y.z-win-x64/), mai win-unpacked/.
 # I runtime Electron si scaricano dalla release sorgente più recente disponibile
 # (v1.1.x oppure v1.0.0). Con HOUSEKEEPING=1 elimina i tag 1.1.x e ricrea v1.0.0.
 set -euo pipefail
@@ -211,13 +213,31 @@ PY
   python3 - "$WORKDIR/zips/$asset" "$dest" <<'PY'
 import sys, zipfile
 from pathlib import Path
-root, out = Path(sys.argv[1]), Path(sys.argv[2])
+
+extracted, out = Path(sys.argv[1]), Path(sys.argv[2])
+wrapper = out.name[:-4] if out.name.lower().endswith('.zip') else out.stem
+
+
+def payload_root(base: Path) -> Path:
+    """Directory che contiene DUPLO.exe / DUPLO, anche se lo zip sorgente era piatto o win-unpacked/."""
+    candidates = []
+    for path in base.rglob('*'):
+        if path.is_file() and path.name in ('DUPLO.exe', 'DUPLO'):
+            candidates.append(path)
+    if not candidates:
+        return base
+    candidates.sort(key=lambda p: len(p.parts))
+    return candidates[0].parent
+
+
+root = payload_root(extracted)
 out.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for path in sorted(root.rglob('*')):
         if path.is_file():
-            z.write(path, path.relative_to(root).as_posix())
-print('scritto', out, 'byte', out.stat().st_size)
+            rel = path.relative_to(root).as_posix()
+            z.write(path, f'{wrapper}/{rel}')
+print('scritto', out, 'byte', out.stat().st_size, 'cartella', wrapper + '/')
 PY
 }
 
@@ -308,7 +328,14 @@ for zp in out.glob('*.zip'):
     leftover = [n for n in names if 'dupfinder' in n.lower()]
     if leftover:
         raise SystemExit(f'ERRORE {zp.name} path DupFinder: {leftover}')
-    print('OK path', zp.name)
+    wrapper = zp.name[:-4] if zp.name.lower().endswith('.zip') else zp.stem
+    prefix = wrapper.replace('\\', '/') + '/'
+    normalized = [n.replace('\\', '/') for n in names]
+    if any(n.startswith('win-unpacked/') or n.startswith('win-ia32-unpacked/') or n.startswith('linux-unpacked/') for n in normalized):
+        raise SystemExit(f'ERRORE {zp.name} contiene ancora win-unpacked/linux-unpacked: {normalized[:12]}')
+    if not any(n == prefix or n.startswith(prefix) for n in normalized):
+        raise SystemExit(f'ERRORE {zp.name} senza cartella {wrapper}/: {normalized[:12]}')
+    print('OK path', zp.name, 'cartella', wrapper + '/')
 PY
 
 (
