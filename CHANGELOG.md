@@ -17,7 +17,7 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 - Filtri avanzati: estensioni, intervallo date, dimensione min/max, categorie file, nomi simili.
 - Menu nativo e UI in italiano (default), inglese, spagnolo e francese; dizionari in `src/locales/`. Cambio lingua immediato sul DOM + IPC per i menu nativi; preferenza in `localStorage`.
 - Tema chiaro/scuro con variabili CSS (`--bg-primary`, `--text-primary`, `--accent-color`, …) persistito in `localStorage` e allineato a `nativeTheme.themeSource`.
-- Risultati nel pannello destro sezionati per criterio di rilevamento (`matchReason`: hash, size, name, fuzzy), sezioni collassabili, checkbox, Apri percorso, Rinomina.
+- Risultati nel pannello destro sezionati per criterio di rilevamento (`matchReason`: hash, size, name, fuzzy), sezioni collassabili, checkbox, path cliccabile, Rinomina.
 - Menu nativo italiano/inglese/spagnolo/francese, guida in-app (README), log persistenti, export CSV/JSON, pulizia con conferma.
 - Overlay drag & drop a tutta finestra («Trascina qui le cartelle»): path nativo nel preload con `webUtils.getPathForFile`, contatore anti-flicker, validazione cartella nel Main (`fs.promises.stat` + `isDirectory()`). I file singoli restano ignorati.
 - ZIP Windows x64 e ia32 e ZIP Linux x64. Dentro ogni archivio la cartella ha **lo stesso nome dello zip** (es. `DUPLO-1.0.0-win-x64/`), non `win-unpacked`.
@@ -29,6 +29,7 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 - Dipendenza runtime unica: `electron-log`. `electron` / `electron-builder` restano `devDependencies`.
 - Code audit e snellimento dei sorgenti (Main, Preload, Renderer, CSS): JSDoc capillare, commenti sul *perché* (hash a due step, fuzzy, contatore anti-flicker, splitter, path/permessi OS), utility `formatBytes` unificata tra export CSV e statistiche UI.
 - Zip di release: cartella interna omonima all'archivio (`DUPLO-1.0.0-win-x64`, `DUPLO-1.0.0-win-ia32`, `DUPLO-1.0.0-linux-x64`) al posto di `win-unpacked`.
+- Separazione dei controlli in «Azzera Filtri» (solo parametri e filtri avanzati) e «Azzera Ricerca» (solo risultati e avanzamento), con persistenza delle cartelle selezionate.
 
 ### Fixed
 
@@ -47,6 +48,11 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 - Vincolo di drop al solo riquadro tratteggiato in sidebar.
 - Canali IPC morti `file:move` e `open-file-location` (duplicato di `shell:show-item`).
 - Classi CSS non referenziate (`.folder-list.is-drop-target`, `.group-hash`, `.file-actions`) e classe HTML residua `folder-dropzone`.
+- Pulsante ridondante «Apri percorso» / «Mostra percorso» nelle righe duplicato: il path è nativamente cliccabile e apre la cartella.
+
+### UI
+
+- Dicitura tecnica booleana «AND» rimossa dalle intestazioni risultati: i criteri combinati appaiono come badge/tag discreti (es. Stessa Dimensione • Stessa Estensione • Hash).
 
 [Unreleased]: https://github.com/IlRed89/DUPLO/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/IlRed89/DUPLO/releases/tag/v1.0.0

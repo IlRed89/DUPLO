@@ -41,14 +41,16 @@ test('MATCH_REASON_ORDER copre i criteri di rilevamento', () => {
   assert.deepEqual(i18n.MATCH_REASON_ORDER, ['hash', 'size', 'name', 'fuzzy', 'extension', 'date']);
 });
 
-test('toggle Seleziona/Deseleziona e criteri AND sono tradotti in it/en/es/fr', () => {
+test('toggle Seleziona/Deseleziona, reset separati e badge criteri sono tradotti', () => {
   const keys = [
     'results.selectDuplicates',
     'results.deselectDuplicates',
     'reason.extension',
     'reason.date',
     'reason.andJoin',
-    'reason.applied'
+    'reason.applied',
+    'scan.resetFilters',
+    'scan.resetSearch'
   ];
   ['it', 'en', 'es', 'fr'].forEach((lang) => {
     i18n.setLanguage(lang);
@@ -57,9 +59,14 @@ test('toggle Seleziona/Deseleziona e criteri AND sono tradotti in it/en/es/fr', 
       assert.notEqual(value, key, lang + ' manca ' + key);
       assert.ok(value.length > 0, lang + ' ' + key + ' vuota');
     });
+    assert.equal(i18n.t('reason.applied').indexOf('AND'), -1, lang + ' reason.applied non deve contenere AND');
+    assert.equal(i18n.t('reason.andJoin').indexOf('AND'), -1, lang + ' reason.andJoin non deve contenere AND');
   });
   i18n.setLanguage('it');
   assert.equal(i18n.t('results.selectDuplicates'), 'Seleziona duplicati');
   assert.equal(i18n.t('results.deselectDuplicates'), 'Deseleziona duplicati');
   assert.equal(i18n.t('reason.extension'), 'Stessa Estensione');
+  assert.equal(i18n.t('scan.resetFilters'), 'Azzera Filtri');
+  assert.equal(i18n.t('scan.resetSearch'), 'Azzera Ricerca');
+  assert.equal(i18n.t('reason.andJoin').trim(), '•');
 });
