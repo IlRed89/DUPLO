@@ -10,7 +10,7 @@ const fsp = fs.promises;
 const path = require('path');
 const os = require('os');
 const { computePartialHash, computeFullHash } = require('./hasher');
-const { findDuplicates, ScanCancellationToken, classifyMatchReason, listMatchedCriteria } = require('./scanner');
+const { findDuplicates, ScanCancellationToken, classifyMatchReason, listMatchedCriteria, formatDuplicateGroups, orderResultGroups, sortFilesInGroup } = require('./scanner');
 const { getCategoryExtensions } = require('./fileCategories');
 
 test('Hasher: calcolo corretto di partial hash e full hash su file identici', async () => {
@@ -324,4 +324,55 @@ test('Scanner: size AND name senza hash tiene solo i file che soddisfano entramb
   assert.equal(groups[0].files.length, 2);
   assert.ok(groups[0].files.every((f) => f.name === 'copia.txt'));
   await fsp.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('Scanner: orderResultGroups assegna groupId sequenziali 1..N per size desc', () => {
+  const groups = orderResultGroups([
+    {
+      size: 10,
+      files: [
+        { path: '/b/zeta.bin', name: 'zeta.bin', size: 10, mtimeMs: 200 },
+        { path: '/a/alpha.bin', name: 'alpha.bin', size: 10, mtimeMs: 50 }
+      ]
+    },
+    {
+      size: 999,
+      files: [
+        { path: '/c/big2.dat', name: 'big2.dat', size: 999, mtimeMs: 10 },
+        { path: '/c/big1.dat', name: 'big1.dat', size: 999, mtimeMs: 80 }
+      ]
+    },
+    {
+      size: 10,
+      files: [
+        { path: '/d/beta.bin', name: 'beta.bin', size: 10, mtimeMs: 1 },
+        { path: '/d/beta2.bin', name: 'beta2.bin', size: 10, mtimeMs: 2 }
+      ]
+    }
+  ]);
+  assert.equal(groups.length, 3);
+  assert.deepEqual(groups.map((g) => g.groupId), [1, 2, 3]);
+  assert.equal(groups[0].size, 999, 'il gruppo più pesante è Gruppo 1');
+  assert.equal(groups[0].files[0].name, 'big2.dat', 'File #1 è il più vecchio per mtime');
+  assert.equal(groups[1].files[0].name, 'beta.bin');
+  assert.equal(groups[2].files[0].name, 'alpha.bin');
+});
+
+test('Scanner: formatDuplicateGroups non assegna groupId prima del sort', () => {
+  const small = [
+    { path: '/s/a', name: 'a', size: 5, mtimeMs: 20 },
+    { path: '/s/b', name: 'b', size: 5, mtimeMs: 10 }
+  ];
+  const large = [
+    { path: '/l/z', name: 'z', size: 50, mtimeMs: 3 },
+    { path: '/l/y', name: 'y', size: 50, mtimeMs: 1 },
+    { path: '/l/x', name: 'x', size: 50, mtimeMs: 2 }
+  ];
+  const formatted = formatDuplicateGroups([small, large], ['hash']);
+  assert.equal(formatted[0].groupId, 1);
+  assert.equal(formatted[1].groupId, 2);
+  assert.equal(formatted[0].size, 50);
+  assert.equal(formatted[1].size, 5);
+  assert.deepEqual(formatted[0].files.map((f) => f.name), ['y', 'x', 'z']);
+  assert.deepEqual(sortFilesInGroup(small).map((f) => f.name), ['b', 'a']);
 });
