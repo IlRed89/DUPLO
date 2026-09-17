@@ -359,7 +359,7 @@ ipcMain.handle('dialog:select-directory', async () => {
  *
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {unknown} rawPath
- * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>
+ * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>}
  */
 ipcMain.handle('validate-and-add-folder', async (_event, rawPath) => {
   logger.info(`[IPC] validate-and-add-folder ricevuto: ${JSON.stringify(rawPath)}`);
@@ -386,7 +386,7 @@ ipcMain.handle('validate-and-add-folder', async (_event, rawPath) => {
  *
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {unknown} rawPaths
- * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>
+ * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>}
  */
 ipcMain.handle('fs:filter-directories', async (_event, rawPaths) => {
   const list = Array.isArray(rawPaths) ? rawPaths : [];
