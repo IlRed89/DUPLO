@@ -5,6 +5,10 @@
  * Caricato dopo `renderer.js` così usa `state`, `dom`, `t`, `logToMain`,
  * `formatBytes`, `askRenameFile` e `askDeleteSingleFile` già definiti.
  * Nessun modulo Node: tutto passa da `window.duploAPI`.
+ *
+ * I file di un gruppo sono File #1, #2, #3… (mtime crescente). Non esiste
+ * un «originale»: #1 è solo il più vecchio. «Seleziona dal 2° in poi»
+ * lascia #1 deselezionato e spunta #2+.
  */
 'use strict';
 
@@ -86,12 +90,12 @@ function buildCriteriaBadges(list) {
 }
 
 /**
- * Percorsi dei duplicati (escluso l'originale, indice 0) in gruppi.
+ * Percorsi dal 2° file in poi (File #2, #3, …). File #1 non entra mai.
  *
  * @param {Array<Object>} groups
  * @returns {string[]}
  */
-function collectDuplicatePaths(groups) {
+function collectFromSecondPaths(groups) {
   const paths = [];
   (groups || []).forEach(function (group) {
     (group.files || []).forEach(function (file, idx) {
@@ -105,7 +109,7 @@ function collectDuplicatePaths(groups) {
 }
 
 /**
- * True se ogni duplicato della lista è in `state.selectedPaths`.
+ * True se ogni path della lista è in `state.selectedPaths`.
  *
  * @param {string[]} paths
  * @returns {boolean}
@@ -120,24 +124,25 @@ function areAllPathsSelected(paths) {
 }
 
 /**
- * Toggle a due vie: se tutti i target sono selezionati li toglie, altrimenti li spunta tutti.
+ * Toggle a due vie sul 2° file in poi: se tutti i target sono selezionati
+ * li toglie, altrimenti li spunta. File #1 resta sempre deselezionato.
  *
  * @param {string[]} paths
  * @param {string} scope Etichetta di log (`section` / `group`).
  * @returns {void}
  */
-function toggleDuplicateSelection(paths, scope) {
+function toggleFromSecondSelection(paths, scope) {
   const allOn = areAllPathsSelected(paths);
   if (allOn) {
     paths.forEach(function (p) {
       delete state.selectedPaths[p];
     });
-    logToMain('info', 'Deselezionati ' + paths.length + ' duplicati (' + scope + ')');
+    logToMain('info', '[Select] deselezionati ' + paths.length + ' file dal 2° in poi (' + scope + ')');
   } else {
     paths.forEach(function (p) {
       state.selectedPaths[p] = true;
     });
-    logToMain('info', 'Selezionati ' + paths.length + ' duplicati (' + scope + ')');
+    logToMain('info', '[Select] selezionati ' + paths.length + ' file dal 2° in poi (' + scope + ')');
   }
   renderResults();
 }
@@ -226,23 +231,23 @@ function buildReasonSection(reason, groups, criteria) {
   const body = document.createElement('div');
   body.className = 'reason-section-body';
 
-  const dupPaths = collectDuplicatePaths(groups);
-  const allOn = areAllPathsSelected(dupPaths);
+  const fromSecond = collectFromSecondPaths(groups);
+  const allOn = areAllPathsSelected(fromSecond);
   const selectRow = document.createElement('label');
   selectRow.className = 'reason-section-select';
   const selectAll = document.createElement('input');
   selectAll.type = 'checkbox';
   selectAll.className = 'file-check';
   selectAll.checked = allOn;
-  selectAll.title = allOn ? t('results.deselectDuplicates') : t('results.selectDuplicates');
+  selectAll.title = allOn ? t('results.deselectFromSecond') : t('results.selectFromSecond');
   selectAll.addEventListener('click', function (event) {
     event.stopPropagation();
   });
   selectAll.addEventListener('change', function () {
-    toggleDuplicateSelection(dupPaths, 'section:' + reason);
+    toggleFromSecondSelection(fromSecond, 'section:' + reason);
   });
   const selectLbl = document.createElement('span');
-  selectLbl.textContent = allOn ? t('results.deselectDuplicates') : t('results.selectDuplicates');
+  selectLbl.textContent = allOn ? t('results.deselectFromSecond') : t('results.selectFromSecond');
   selectRow.appendChild(selectAll);
   selectRow.appendChild(selectLbl);
   body.appendChild(selectRow);
@@ -257,7 +262,7 @@ function buildReasonSection(reason, groups, criteria) {
 }
 
 /**
- * Disegna i gruppi duplicati sezionati per combinazione AND di criteri.
+ * Disegna i gruppi (già ordinati 1..N dal Main) sezionati per criteri AND.
  * @returns {void}
  */
 function renderResults() {
@@ -284,10 +289,10 @@ function renderResults() {
   }
 
   let totalDuplicates = 0;
-  let totalWastedBytes = 0;
+  let totalSizeBytes = 0;
   state.duplicateGroups.forEach(function (g) {
-    totalDuplicates += (g.fileCount - 1);
-    totalWastedBytes += g.wastedBytes;
+    totalDuplicates += Math.max(0, g.fileCount - 1);
+    totalSizeBytes += (Number(g.size) || 0) * (Number(g.fileCount) || 0);
   });
 
   if (dom.statFilesScanned) {
@@ -299,8 +304,8 @@ function renderResults() {
   if (dom.statDuplicatesCount) {
     dom.statDuplicatesCount.textContent = String(totalDuplicates);
   }
-  if (dom.statWastedSpace) {
-    dom.statWastedSpace.textContent = formatBytes(totalWastedBytes);
+  if (dom.statTotalSize) {
+    dom.statTotalSize.textContent = formatBytes(totalSizeBytes);
   }
   if (dom.statsBanner) {
     dom.statsBanner.style.display = 'grid';
@@ -312,6 +317,9 @@ function renderResults() {
     dom.emptyPlaceholder.style.display = 'none';
   }
 
+  logToMain('debug', '[Results] render ' + state.duplicateGroups.length + ' gruppi, ids=' +
+    state.duplicateGroups.map(function (g) { return g.groupId; }).join(','));
+
   const sections = groupResultsByMatchReason(state.duplicateGroups);
   const host = dom.resultsList || dom.resultsScrollContainer;
   sections.forEach(function (section) {
@@ -320,7 +328,7 @@ function renderResults() {
 }
 
 /**
- * Card di un set identico (originale + duplicati) dentro una macro-sezione.
+ * Card di un set identico (File #1, #2, …) dentro una macro-sezione.
  *
  * @param {Object} group
  * @param {number} groupIdx
@@ -346,7 +354,7 @@ function buildDuplicateCard(group, groupIdx) {
     info.appendChild(buildCriteriaBadges(applied));
   }
 
-  const groupPaths = collectDuplicatePaths([group]);
+  const groupPaths = collectFromSecondPaths([group]);
   const groupAllOn = areAllPathsSelected(groupPaths);
   const groupSelect = document.createElement('label');
   groupSelect.className = 'reason-section-select';
@@ -354,22 +362,22 @@ function buildDuplicateCard(group, groupIdx) {
   groupCb.type = 'checkbox';
   groupCb.className = 'file-check';
   groupCb.checked = groupAllOn;
-  groupCb.title = groupAllOn ? t('results.deselectDuplicates') : t('results.selectDuplicates');
+  groupCb.title = groupAllOn ? t('results.deselectFromSecond') : t('results.selectFromSecond');
   groupCb.addEventListener('change', function () {
-    toggleDuplicateSelection(groupPaths, 'group:' + (group.groupId || groupIdx));
+    toggleFromSecondSelection(groupPaths, 'group:' + (group.groupId || groupIdx));
   });
   const groupLbl = document.createElement('span');
-  groupLbl.textContent = groupAllOn ? t('results.deselectDuplicates') : t('results.selectDuplicates');
+  groupLbl.textContent = groupAllOn ? t('results.deselectFromSecond') : t('results.selectFromSecond');
   groupSelect.appendChild(groupCb);
   groupSelect.appendChild(groupLbl);
 
-  const wasted = document.createElement('div');
-  wasted.className = 'group-wasted';
-  wasted.textContent = t('results.waste', { size: formatBytes(group.wastedBytes) });
+  const sizeEl = document.createElement('div');
+  sizeEl.className = 'group-size';
+  sizeEl.textContent = t('results.size', { size: formatBytes(group.size) });
 
   header.appendChild(info);
   header.appendChild(groupSelect);
-  header.appendChild(wasted);
+  header.appendChild(sizeEl);
 
   const list = document.createElement('div');
   list.className = 'group-files-list';
@@ -382,8 +390,7 @@ function buildDuplicateCard(group, groupIdx) {
 }
 
 /**
- * Riga file: checkbox, tag originale/duplicato, path cliccabile, mtime, Rinomina, Elimina.
- * Il path apre la cartella via `showItemInFolder`; nessun pulsante «Apri percorso».
+ * Riga file: checkbox, etichetta File #N, path cliccabile, mtime, Rinomina, Elimina.
  *
  * @param {Object} group
  * @param {Object} file
@@ -391,9 +398,12 @@ function buildDuplicateCard(group, groupIdx) {
  * @returns {HTMLElement}
  */
 function buildFileRow(group, file, fileIndex) {
-  const isOriginal = fileIndex === 0;
+  const isFirst = fileIndex === 0;
+  const ordinal = fileIndex + 1;
   const row = document.createElement('div');
-  row.className = 'file-row' + (isOriginal ? ' is-original' : '');
+  row.className = 'file-row' + (isFirst ? ' is-first' : '');
+  row.dataset.fileIndex = String(ordinal);
+  row.dataset.filePath = file.path || '';
 
   const main = document.createElement('div');
   main.className = 'file-main-info';
@@ -403,21 +413,20 @@ function buildFileRow(group, file, fileIndex) {
   cb.className = 'file-check';
   cb.title = t('results.selectFile');
   cb.checked = !!state.selectedPaths[file.path];
-  cb.disabled = isOriginal;
   cb.addEventListener('change', function () {
     if (cb.checked) {
       state.selectedPaths[file.path] = true;
     } else {
       delete state.selectedPaths[file.path];
     }
-    logToMain('debug', 'Checkbox file ' + file.path + ' = ' + cb.checked);
+    logToMain('debug', '[Select] File #' + ordinal + ' ' + file.path + ' = ' + cb.checked);
     renderResults();
   });
   main.appendChild(cb);
 
   const tag = document.createElement('span');
-  tag.className = 'file-tag ' + (isOriginal ? 'tag-original' : 'tag-duplicate');
-  tag.textContent = isOriginal ? t('results.original') : t('results.duplicate');
+  tag.className = 'file-tag tag-index';
+  tag.textContent = t('results.fileIndex', { n: ordinal });
   main.appendChild(tag);
 
   const pathScroll = document.createElement('div');
@@ -456,20 +465,19 @@ function buildFileRow(group, file, fileIndex) {
   renameBtn.className = 'btn btn-secondary btn-sm';
   renameBtn.textContent = t('results.rename');
   renameBtn.addEventListener('click', function () {
+    logToMain('info', '[Rename] click File #' + ordinal + ' "' + file.path + '"');
     askRenameFile(group, fileIndex);
   });
   actions.appendChild(renameBtn);
 
-  if (!isOriginal) {
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'btn btn-icon delete-hover btn-sm';
-    del.textContent = t('results.delete');
-    del.addEventListener('click', function () {
-      askDeleteSingleFile(group, fileIndex);
-    });
-    actions.appendChild(del);
-  }
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'btn btn-icon delete-hover btn-sm';
+  del.textContent = t('results.delete');
+  del.addEventListener('click', function () {
+    askDeleteSingleFile(group, fileIndex);
+  });
+  actions.appendChild(del);
 
   meta.appendChild(actions);
   row.appendChild(main);
