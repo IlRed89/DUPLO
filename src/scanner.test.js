@@ -10,7 +10,7 @@ const fsp = fs.promises;
 const path = require('path');
 const os = require('os');
 const { computePartialHash, computeFullHash } = require('./hasher');
-const { findDuplicates, ScanCancellationToken, classifyMatchReason } = require('./scanner');
+const { findDuplicates, ScanCancellationToken, classifyMatchReason, listMatchedCriteria } = require('./scanner');
 const { getCategoryExtensions } = require('./fileCategories');
 
 test('Hasher: calcolo corretto di partial hash e full hash su file identici', async () => {
@@ -70,7 +70,12 @@ test('Scanner: identificazione corretta di duplicati con filtri multipli e crite
   assert.equal(groups.length, 1, 'Deve essere individuato esattamente 1 gruppo di duplicati');
   assert.equal(groups[0].files.length, 2, 'Il gruppo duplicato deve contenere esattamente 2 file');
   assert.equal(groups[0].wastedBytes, groups[0].size, 'Lo spazio sprecato calcolato deve corrispondere alla dimensione del duplicato');
-  assert.equal(groups[0].matchReason, 'hash', 'Con hashing attivo il criterio è hash');
+  assert.equal(groups[0].matchReason, 'size', 'Con size+extension+hash il primo criterio AND resta size');
+  assert.deepEqual(
+    groups[0].matchedCriteria,
+    ['size', 'extension', 'hash'],
+    'matchExtension è attivo nel criterio di test: l\'AND deve includere extension oltre a size e hash'
+  );
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
@@ -163,6 +168,7 @@ test('Scanner: Nomi Simili raggruppa remix senza richiedere hash identico', asyn
   assert.equal(groups.length, 1, 'I due mp3 devono formare un solo gruppo fuzzy');
   assert.equal(groups[0].files.length, 2);
   assert.equal(groups[0].matchReason, 'fuzzy');
+  assert.deepEqual(groups[0].matchedCriteria, ['fuzzy']);
   assert.ok(groups[0].files.every((f) => /Canzone/i.test(f.name)));
 
   await fsp.rm(tmpDir, { recursive: true, force: true });
@@ -184,11 +190,26 @@ test('Scanner: elenco cartelle vuoto o path non validi lancia a monte', async ()
   await assert.rejects(() => findDuplicates(['', '   '], {}, new ScanCancellationToken(), () => {}), /Nessun percorso cartella valido/);
 });
 
-test('classifyMatchReason: priorità hash > fuzzy > name > size', () => {
-  assert.equal(classifyMatchReason({ matchName: true, matchSize: true }, { hashed: true }), 'hash');
-  assert.equal(classifyMatchReason({ matchFuzzyName: true, matchSize: true }, { fuzzyApplied: true }), 'fuzzy');
-  assert.equal(classifyMatchReason({ matchName: true, matchSize: true }, {}), 'name');
-  assert.equal(classifyMatchReason({ matchSize: true }, {}), 'size');
+test('listMatchedCriteria: AND senza fallback su size per estensione', () => {
+  assert.deepEqual(
+    listMatchedCriteria({ matchName: true, matchSize: true }, { hashed: true }),
+    ['size', 'name', 'hash']
+  );
+  assert.deepEqual(
+    listMatchedCriteria({ matchFuzzyName: true, matchSize: true }, { fuzzyApplied: true }),
+    ['size', 'fuzzy']
+  );
+  assert.deepEqual(
+    listMatchedCriteria({ matchName: true, matchSize: true }, {}),
+    ['size', 'name']
+  );
+  assert.deepEqual(listMatchedCriteria({ matchSize: true }, {}), ['size']);
+  assert.deepEqual(listMatchedCriteria({ matchExtension: true }, {}), ['extension']);
+  assert.deepEqual(
+    listMatchedCriteria({ matchExtension: true, matchHash: true }, { hashed: true }),
+    ['extension', 'hash']
+  );
+  assert.equal(classifyMatchReason({ matchExtension: true }, {}), 'extension');
 });
 
 test('Scanner: stesso nome esatto senza hash classifica matchReason=name', async () => {
@@ -214,6 +235,7 @@ test('Scanner: stesso nome esatto senza hash classifica matchReason=name', async
 
   assert.equal(groups.length, 1);
   assert.equal(groups[0].matchReason, 'name');
+  assert.deepEqual(groups[0].matchedCriteria, ['name']);
   assert.equal(groups[0].files.length, 2);
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
@@ -241,5 +263,65 @@ test('Scanner: sola dimensione senza hash classifica matchReason=size', async ()
 
   assert.equal(groups.length, 1);
   assert.equal(groups[0].matchReason, 'size');
+  assert.deepEqual(groups[0].matchedCriteria, ['size']);
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('Scanner: sola estensione classifica matchedCriteria=[extension] non size', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-ext-'));
+  await fsp.writeFile(path.join(tmpDir, 'a.txt'), 'uno');
+  await fsp.writeFile(path.join(tmpDir, 'b.txt'), 'due-diverso');
+  await fsp.writeFile(path.join(tmpDir, 'c.jpg'), 'img');
+
+  const groups = await findDuplicates([tmpDir], {
+    matchName: false,
+    matchSize: false,
+    matchHash: false,
+    matchFuzzyName: false,
+    matchExtension: true,
+    matchDate: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: [],
+    excludeExtensions: [],
+    includeHidden: false
+  }, new ScanCancellationToken(), () => {});
+
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].matchReason, 'extension');
+  assert.deepEqual(groups[0].matchedCriteria, ['extension']);
+  assert.equal(groups[0].files.length, 2);
+  assert.ok(groups[0].files.every((f) => f.path.endsWith('.txt')));
+  await fsp.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('Scanner: size AND name senza hash tiene solo i file che soddisfano entrambi', async () => {
+  const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'duplo-and-'));
+  const same = 'payload-and';
+  await fsp.writeFile(path.join(tmpDir, 'copia.txt'), same);
+  await fsp.mkdir(path.join(tmpDir, 'sub'));
+  await fsp.writeFile(path.join(tmpDir, 'sub', 'copia.txt'), same);
+  await fsp.writeFile(path.join(tmpDir, 'altro.txt'), same);
+
+  const groups = await findDuplicates([tmpDir], {
+    matchName: true,
+    matchSize: true,
+    matchHash: false,
+    matchFuzzyName: false,
+    matchExtension: false,
+    matchDate: false,
+    hashAlgorithm: 'sha256',
+    minSizeBytes: 0,
+    maxSizeBytes: 0,
+    includeExtensions: [],
+    excludeExtensions: [],
+    includeHidden: false
+  }, new ScanCancellationToken(), () => {});
+
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].matchedCriteria, ['size', 'name']);
+  assert.equal(groups[0].files.length, 2);
+  assert.ok(groups[0].files.every((f) => f.name === 'copia.txt'));
   await fsp.rm(tmpDir, { recursive: true, force: true });
 });
