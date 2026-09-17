@@ -353,7 +353,7 @@ function formatDuplicateGroups(rawGroups, matchReason) {
  * (che in Node diventa `cwd` e scansionerebbe l'app stessa).
  *
  * @param {unknown} directories
- * @returns {string[]}
+ * @returns {string[]} Path normalizzati non vuoti.
  * @throws {Error} Se non resta nessuna cartella valida.
  */
 function normalizeScanDirectories(directories) {
