@@ -131,7 +131,7 @@ Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premut
 
 ### Parametri di confronto
 
-I criteri si combinano in **AND (intersezione)**: due file finiscono nello stesso cluster **solo se soddisfano contemporaneamente tutti** i parametri spuntati (es. Stesso Nome **e** Stessa Dimensione **e** Hash identico). Se un file coincide su un criterio ma differisce sugli altri selezionati, **non** viene raggruppato. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata. L'intestazione di ogni gruppo elenca esplicitamente i criteri AND applicati (`matchedCriteria`).
+I criteri si combinano in **intersezione**: due file finiscono nello stesso cluster **solo se soddisfano contemporaneamente tutti** i parametri spuntati (es. Stesso Nome **e** Stessa Dimensione **e** Hash identico). Se un file coincide su un criterio ma differisce sugli altri selezionati, **non** viene raggruppato. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata. L'intestazione di ogni gruppo mostra i criteri applicati come **badge** (senza dicitura tecnica AND).
 
 | Parametro | Cosa fa | Quando usarlo |
 | --- | --- | --- |
@@ -165,7 +165,8 @@ Apri **Ricerca Avanzata** sotto i filtri per restringere ulteriormente l’indic
 - **Formato esatto** — estensioni digitate a mano (`.txt, .csv`). Se il campo non è vuoto **sostituisce** la categoria.
 - **Modificato dal / fino al** — confronta `mtime` del file con l’intervallo (giornata locale). Se inverti le date, DUPLO le scambia e lo scrive nel log.
 - **Dimensione minima / massima** — in KB o MB (tendina Unità). Si combina con “Dim. Minima (KB)” prendendo il limite più restrittivo.
-- **Azzera Filtri e Ricerca** — svuota cartelle, ripristina i default e pulisce i risultati senza chiudere l’app.
+- **Azzera Filtri** — ripristina i parametri di confronto (checkbox, categoria, filtri avanzati di data/dimensione/estensione) ai valori predefiniti. **Non** tocca l’elenco delle cartelle né i risultati già mostrati.
+- **Azzera Ricerca** — pulisce solo il pannello risultati (gruppi, statistiche, barra di avanzamento) e ripristina il messaggio iniziale. Le cartelle già caricate restano, così puoi avviare subito una nuova scansione. Per togliere le cartelle usa **Rimuovi** / **Rimuovi Tutte** in alto.
 
 ---
 
@@ -191,18 +192,18 @@ Le statistiche, a scansione finita:
 
 ## Risultati: originale e duplicati
 
-I duplicati nel pannello di destra sono **sezionati per la combinazione AND di criteri** che ha determinato l'uguaglianza (non un singolo fallback). L'intestazione mostra le etichette vere (`Stessa Estensione`, `Stessa Dimensione`, `Hash`, …) unite da « + ».
+I duplicati nel pannello di destra sono **sezionati per la combinazione di criteri** che ha determinato l'uguaglianza. L'intestazione mostra **badge** con le etichette vere (`Stessa Estensione`, `Stessa Dimensione`, `Hash`, …), senza la dicitura tecnica AND.
 
 Esempi di sezioni:
 
 | Combinazione | Quando compare |
 | --- | --- |
-| **Stesso Contenuto (Hash MD5/SHA256)** | Hash attivo (da solo o insieme ad altri criteri AND) |
+| **Stesso Contenuto (Hash MD5/SHA256)** | Hash attivo (da solo o insieme ad altri criteri) |
 | **Stessa Dimensione** | Solo dimensione, senza hash |
 | **Stesso Nome Esatto** | Solo nome esatto |
 | **Stessa Estensione** | Solo estensione (non viene più etichettata come «Stessa Dimensione») |
 | **Nomi Simili (Fuzzy Match)** | Similarità nomi ≥ 80% |
-| **Stessa Dimensione + Stessa Estensione + Hash** | Tutti e tre spuntati: il cluster soddisfa l'intersezione |
+| **Stessa Dimensione • Stessa Estensione • Hash** | Tutti e tre spuntati: il cluster soddisfa l'intersezione |
 
 Ogni macro-sezione ha intestazione tradotta, conteggio gruppi/file e si **comprime/espande**. Dentro restano i set identici (card di gruppo).
 
@@ -214,7 +215,7 @@ In ogni gruppo:
 Cosa puoi fare su ogni riga:
 
 - spuntare la **checkbox** (sui duplicati) per la selezione multipla rapida. «Seleziona duplicati» / «Deseleziona duplicati» è un **toggle a due vie** (sezione o gruppo): se tutte le caselle target sono già spuntate, il click le toglie; altrimenti le spunta tutte;
-- **Apri percorso** (o clic sul path) per aprire Esplora file / Finder sulla posizione. I percorsi lunghi restano visibili per intero: la riga scorre in orizzontale (`overflow-x: auto`) e il tooltip nativo `title` mostra il path assoluto; i pulsanti e le checkbox non si comprimono (`flex-shrink: 0`);
+- cliccare il **percorso** per aprire Esplora file / Finder sulla posizione (hover con sottolineatura e colore accento). I percorsi lunghi restano visibili per intero: la riga scorre in orizzontale (`overflow-x: auto`) e il tooltip nativo `title` mostra il path assoluto; i pulsanti e le checkbox non si comprimono (`flex-shrink: 0`);
 - **Rinomina** il file nella stessa cartella;
 - leggere la **data di modifica**;
 - sul duplicato, **Elimina** per cancellare **solo quel file**, dopo una conferma.
