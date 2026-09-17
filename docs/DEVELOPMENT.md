@@ -49,7 +49,8 @@ DUPLO/
         ├── prefsView.js         # lingua, tema, categoria, splitter
         ├── dropView.js          # overlay drop a tutta finestra
         ├── filtersView.js       # criteri AND, Azzera Filtri / Ricerca
-        ├── actionsView.js       # scan, rinomina IPC, delete, guida
+        ├── actionsView.js       # scan, delete, guida
+        ├── renameView.js        # event delegation Rinomina + DuploDialog + IPC
         ├── appDialog.js         # DuploDialog: warning / error / confirm / prompt
         ├── resultsView.js       # gruppi sequenziali, File #N, selezione dal 2° in poi
         ├── splitterMath.js      # clamp larghezza sidebar
