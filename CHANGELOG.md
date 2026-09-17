@@ -17,6 +17,7 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 - Sostituzione degli `alert()` / `confirm()` / `prompt()` nativi con modali/dialoghi integrati nel tema dell'app (`[data-theme="dark"|"light"]`).
 - Rimozione della nozione di «originale/duplicato» in favore della numerazione progressiva (File #1, #2, …, per data di modifica) e della selezione «dal 2° in poi».
 - Terminologia da «Spreco» a «Dimensione»; all'avvio e su Azzera Filtri nessun criterio di confronto è spuntato.
+- Renderer UI spezzato in moduli (`prefsView`, `dropView`, `filtersView`, `actionsView`) e CSS risultati in `results.css`.
 
 ### Removed
 
