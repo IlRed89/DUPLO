@@ -14,14 +14,11 @@ Indice:
 2. [Flusso consigliato](#flusso-consigliato-prima-volta)
 3. [Interfaccia](#interfaccia)
 4. [Come funziona la scansione](#come-funziona-la-scansione)
-5. [Risultati](#risultati-originale-e-duplicati)
-6. [Esportazione](#esportazione)
-7. [File di log (troubleshooting)](#file-di-log-troubleshooting)
-8. [Consigli, FAQ, limitazioni](#consigli-pratici)
-9. [Architettura](#architettura)
-10. [Sviluppo e compilazione](#sviluppo-e-compilazione)
-11. [Lifecycle & Release Policy](#lifecycle--release-policy-obbligatoria)
-12. [Licenza](#licenza)
+5. [Risultati](#risultati-gruppi-e-numerazione-progressiva)
+6. [File di log (troubleshooting)](#file-di-log-troubleshooting)
+7. [Consigli, FAQ, limitazioni](#consigli-pratici)
+8. [Sviluppo](#sviluppo)
+9. [Licenza](#licenza)
 
 ---
 
@@ -94,12 +91,11 @@ L’eseguibile prende l’icona da **`build/icon.ico`** (`build.win.icon` in `pa
 ## Flusso consigliato (prima volta)
 
 1. Aggiungi le cartelle da analizzare (Foto, Download, Documenti…): **Aggiungi Cartella** oppure **trascinale ovunque nella finestra** da Esplora file / Finder. Compare un overlay a tutto schermo («Trascina qui le cartelle»). Puoi aggiungerne più di una: DUPLO confronta anche i file che stanno in cartelle diverse. I singoli file trascinati vengono ignorati.
-2. Lascia attivi **Stessa Dimensione** e **Hash Contenuto (2-Step)**. Così trovi copie identiche anche se i nomi sono diversi (`foto.jpg` e `copia di foto.jpg`).
-3. Clicca **Avvia Scansione** e attendi la barra di avanzamento.
-4. Leggi i gruppi: la riga verde **Originale** è quella che verrà conservata; le righe rosse **Duplicato** sono le copie in più.
-5. Controlla i percorsi (icona cartella) prima di cancellare.
-6. Elimina un singolo duplicato con l'icona cestino, oppure usa **Pulizia Rapida Duplicati** per togliere tutte le copie in un colpo solo (con conferma).
-7. Se vuoi solo un elenco, esporta **CSV** (si apre con Excel) o **JSON**.
+2. Spunta **esplicitamente** i parametri di confronto che vuoi usare (all'avvio **nessuna** casella è attiva). Per copie identiche anche con nomi diversi: **Stessa Dimensione** e **Hash Contenuto (2-Step)** (`foto.jpg` e `copia di foto.jpg`).
+3. Clicca **Avvia Scansione** e attendi la barra di avanzamento. Senza almeno un criterio, compare un avviso a tema (non il dialog nativo del sistema).
+4. Leggi i gruppi in ordine deterministico (dal file più pesante al più leggero): **Gruppo 1**, **Gruppo 2**, … Dentro ogni gruppo i file sono **File #1**, **File #2**, **File #3**… ordinati per data di modifica (il più vecchio è #1). DUPLO non etichetta alcun file come «originale».
+5. Controlla i percorsi (il path è cliccabile) prima di cancellare.
+6. **Seleziona dal 2° in poi** spunta File #2, #3, … e lascia File #1 deselezionato (toggle: un secondo click li toglie). Elimina un file con l'icona cestino, oppure usa **Pulizia Rapida Duplicati** per togliere dal 2° in poi di ogni gruppo (con conferma a tema).
 
 Finché non confermi, **nessun file viene cancellato**.
 
@@ -110,7 +106,7 @@ Finché non confermi, **nessun file viene cancellato**.
 ### Intestazione e menu nativo
 
 - **Lingua (Italiano / English / Español / Français)** — aggiorna subito tutti i testi dell'interfaccia (etichette, placeholder, tooltip, filtri avanzati, messaggi a schermo, modali) e ricostruisce la barra dei menu nativa (File, Modifica, Visualizza, Finestra, Aiuto). La preferenza è salvata in `localStorage`.
-- **Tema (Chiaro / Scuro)** — alterna la palette CSS (`--bg-primary`, `--text-primary`, `--accent-color`, …) su pannelli, modali, scrollbar, splitter e righe risultati. La scelta è persistita in `localStorage` e inviata al Main Process (`nativeTheme.themeSource`) così i dialoghi nativi del sistema seguono lo stesso tema.
+- **Tema (Chiaro / Scuro)** — alterna la palette CSS (`--bg-primary`, `--text-primary`, `--accent-color`, …) su pannelli, **modali a tema**, scrollbar, splitter e righe risultati. Avvisi, errori e conferme usano lo stesso overlay (niente `alert()` / `confirm()` / `prompt()` nativi). La scelta è persistita in `localStorage` e inviata al Main Process (`nativeTheme.themeSource`).
 - **Guida** — apre questo manuale dentro l'applicazione. Stessa voce nel menu **Aiuto** (F1). Da lì puoi aprire `README.md` con il visualizzatore di testo del sistema.
 - **File di Log** — mostra il percorso del diario tecnico (utile se qualcosa non funziona). Anche **Aiuto → Apri cartella dei log**.
 
@@ -131,7 +127,7 @@ Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premut
 
 ### Parametri di confronto
 
-I criteri si combinano in **intersezione**: due file finiscono nello stesso cluster **solo se soddisfano contemporaneamente tutti** i parametri spuntati (es. Stesso Nome **e** Stessa Dimensione **e** Hash identico). Se un file coincide su un criterio ma differisce sugli altri selezionati, **non** viene raggruppato. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata. L'intestazione di ogni gruppo mostra i criteri applicati come **badge** (senza dicitura tecnica AND).
+I criteri si combinano in **intersezione**: due file finiscono nello stesso cluster **solo se soddisfano contemporaneamente tutti** i parametri spuntati (es. Stesso Nome **e** Stessa Dimensione **e** Hash identico). Se un file coincide su un criterio ma differisce sugli altri selezionati, **non** viene raggruppato. All'avvio e dopo **Azzera Filtri** **nessuna** casella è spuntata: serve **almeno un** parametro scelto da te, altrimenti la scansione viene rifiutata con un avviso a tema. L'intestazione di ogni gruppo mostra i criteri applicati come **badge** (senza dicitura tecnica AND).
 
 | Parametro | Cosa fa | Quando usarlo |
 | --- | --- | --- |
@@ -165,7 +161,7 @@ Apri **Ricerca Avanzata** sotto i filtri per restringere ulteriormente l’indic
 - **Formato esatto** — estensioni digitate a mano (`.txt, .csv`). Se il campo non è vuoto **sostituisce** la categoria.
 - **Modificato dal / fino al** — confronta `mtime` del file con l’intervallo (giornata locale). Se inverti le date, DUPLO le scambia e lo scrive nel log.
 - **Dimensione minima / massima** — in KB o MB (tendina Unità). Si combina con “Dim. Minima (KB)” prendendo il limite più restrittivo.
-- **Azzera Filtri** — ripristina i parametri di confronto (checkbox, categoria, filtri avanzati di data/dimensione/estensione) ai valori predefiniti. **Non** tocca l’elenco delle cartelle né i risultati già mostrati.
+- **Azzera Filtri** — toglie tutte le spunte dai parametri di confronto e ripristina categoria/filtri avanzati. **Non** tocca l’elenco delle cartelle né i risultati già mostrati.
 - **Azzera Ricerca** — pulisce solo il pannello risultati (gruppi, statistiche, barra di avanzamento) e ripristina il messaggio iniziale. Le cartelle già caricate restano, così puoi avviare subito una nuova scansione. Per togliere le cartelle usa **Rimuovi** / **Rimuovi Tutte** in alto.
 
 ---
@@ -186,13 +182,15 @@ Le statistiche, a scansione finita:
 - **File analizzati** — quanti file sono stati presi in considerazione.
 - **Gruppi duplicati** — insiemi di copie dello stesso contenuto.
 - **File duplicati** — copie in più (in un gruppo di 3 file ce ne sono 2).
-- **Spazio recuperabile** — quanto libereresti tenendo una sola copia per gruppo.
+- **Dimensione** — somma delle dimensioni dei file elencati nei gruppi.
 
 ---
 
-## Risultati: originale e duplicati
+## Risultati: gruppi e numerazione progressiva
 
 I duplicati nel pannello di destra sono **sezionati per la combinazione di criteri** che ha determinato l'uguaglianza. L'intestazione mostra **badge** con le etichette vere (`Stessa Estensione`, `Stessa Dimensione`, `Hash`, …), senza la dicitura tecnica AND.
+
+I **gruppi** sono ordinati in modo deterministico: prima per **dimensione decrescente**, a parità di size per nome del File #1. Ogni card ha un identificativo sequenziale **Gruppo 1**, **Gruppo 2**, **Gruppo 3**… senza salti.
 
 Esempi di sezioni:
 
@@ -207,31 +205,18 @@ Esempi di sezioni:
 
 Ogni macro-sezione ha intestazione tradotta, conteggio gruppi/file e si **comprime/espande**. Dentro restano i set identici (card di gruppo).
 
-In ogni gruppo:
-
-- la prima riga, verde, è l'**Originale** (il primo file incontrato durante la scansione);
-- le altre, rosse, sono **Duplicati**.
+In ogni gruppo i file sono **File #1**, **File #2**, **File #3**… ordinati per data di modifica (poi path). DUPLO **non** può sapere quale sia l'«originale»: la numerazione è solo un ordine stabile. File #1 è il più vecchio del cluster.
 
 Cosa puoi fare su ogni riga:
 
-- spuntare la **checkbox** (sui duplicati) per la selezione multipla rapida. «Seleziona duplicati» / «Deseleziona duplicati» è un **toggle a due vie** (sezione o gruppo): se tutte le caselle target sono già spuntate, il click le toglie; altrimenti le spunta tutte;
+- spuntare la **checkbox** di un file singolo;
+- usare **Seleziona dal 2° in poi** / **Deseleziona dal 2° in poi** (sezione o gruppo): toggle a due vie che lascia sempre deselezionato File #1 e spunta (o toglie) #2, #3, …;
 - cliccare il **percorso** per aprire Esplora file / Finder sulla posizione (hover con sottolineatura e colore accento). I percorsi lunghi restano visibili per intero: la riga scorre in orizzontale (`overflow-x: auto`) e il tooltip nativo `title` mostra il path assoluto; i pulsanti e le checkbox non si comprimono (`flex-shrink: 0`);
-- **Rinomina** il file nella stessa cartella;
+- **Rinomina** apre un dialogo a tema con il nome attuale (senza path); alla conferma il Main rinomina con `fs.promises.rename` e l'UI aggiorna subito nome, percorso e apertura cartella;
 - leggere la **data di modifica**;
-- sul duplicato, **Elimina** per cancellare **solo quel file**, dopo una conferma.
+- **Elimina** per cancellare **solo quel file**, dopo una conferma a tema.
 
-**Elimina selezionati** toglie i file spuntati. **Pulizia Rapida Duplicati** elimina tutte le copie rosse di tutti i gruppi e lascia gli originali. Chiedono conferma. L'eliminazione è **definitiva**: i file non passano dal Cestino.
-
-Prima di una pulizia di massa conviene esportare il report e aprire qualche cartella a campione.
-
----
-
-## Esportazione
-
-- **Esporta CSV** — una riga per file, con gruppo, hash, dimensione, percorso e data. Si apre con Excel, LibreOffice o Fogli Google.
-- **Esporta JSON** — stesso contenuto in formato strutturato, utile per script.
-
-Nessuna esportazione modifica i file analizzati.
+**Elimina selezionati** toglie i file spuntati (se non ce n'è nessuno compare un avviso a tema). **Pulizia Rapida Duplicati** elimina dal 2° in poi di tutti i gruppi e lascia File #1. Chiedono conferma. L'eliminazione è **definitiva**: i file non passano dal Cestino.
 
 ---
 
@@ -239,7 +224,7 @@ Nessuna esportazione modifica i file analizzati.
 
 DUPLO usa **electron-log**. In sviluppo scrive anche in console; in produzione (e comunque sempre) scrive su **file persistente** con rotazione automatica (circa 5 MB per file).
 
-Livello: `debug`. Viene registrato l’avvio (OS, architettura, versioni Node/Electron), ogni cartella aggiunta, ogni cambio filtro, inizio/fine scansione, file/cartelle ignorati per permessi (`EPERM`, `EACCES`, `EBUSY`), hash parziale e completo, export, eliminazioni, errori UI.
+Livello: `debug`. Viene registrato l’avvio (OS, architettura, versioni Node/Electron), ogni cartella aggiunta, ogni cambio filtro, inizio/fine scansione, file/cartelle ignorati per permessi (`EPERM`, `EACCES`, `EBUSY`), hash parziale e completo, rinomine, eliminazioni, errori UI.
 
 ### Dove sono i file
 
@@ -295,7 +280,7 @@ Non sono duplicati di contenuto. Con Hash attivo restano distinti. Se spunti sol
 È normale su dischi meccanici o cartelle con centinaia di migliaia di file. L'hash completo parte solo sui candidati. Chiudi altri programmi che usano lo stesso disco.
 
 **Posso annullare un'eliminazione?**  
-No. DUPLO non sposta nel Cestino. Usa l'anteprima e l'esportazione prima della pulizia rapida.
+No. DUPLO non sposta nel Cestino. Controlla i path e usa la conferma a tema prima della pulizia rapida.
 
 **L'antivirus blocca l'eseguibile.**  
 È un falso positivo frequente sugli exe non firmati. Confronta l'hash dello zip scaricato con `SHA256SUMS.txt` nella release. Non spostare `DUPLO.exe` fuori dalla cartella unpacked.
@@ -307,170 +292,13 @@ No. DUPLO non sposta nel Cestino. Usa l'anteprima e l'esportazione prima della p
 - Non analizza file in uso esclusivo dal sistema se il sistema operativo rifiuta la lettura.
 - Non “deduplica” i file lasciando un collegamento: elimina le copie oppure lascia tutto com'è.
 - Non confronta il contenuto “simile” (immagini quasi uguali, documenti con piccole modifiche).
-- L'etichetta Originale è la prima occorrenza trovata, non necessariamente il file più vecchio.
+- File #1 è il file più vecchio del gruppo (mtime), non necessariamente «l'originale» scelto da te.
 
 ---
 
-## Architettura
+## Sviluppo
 
-Due processi Electron, isolati:
-
-```
-Renderer (HTML/CSS/JS)  --preload.js / contextBridge-->  Main (Node.js)
-        UI, progresso, risultati                         dialoghi nativi, scan, hash, log, disco
-```
-
-Il renderer **non** ha `nodeIntegration`. Parla solo con `window.duploAPI` (canali IPC in `preload.js`).
-
-```
-DUPLO/
-├── main.js                      # ciclo di vita, BrowserWindow, handler IPC
-├── preload.js                   # contextBridge (API sicura verso il renderer)
-├── package.json                 # dipendenze e configurazione electron-builder
-├── LICENSE                      # MIT
-├── README.md                    # questo file (anche extraResource nel pacchetto)
-├── build/
-│   ├── icon.svg                 # master vettoriale (lente + due documenti)
-│   ├── icon.png                 # Linux / tray (512×512)
-│   ├── icon.ico                 # Windows — OBBLIGATORIO prima di dist:win
-│   └── icon.icns                # macOS
-├── scripts/
-│   ├── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
-│   ├── flattenWinZip.js         # ZIP: cartella omonima all'archivio (non win-unpacked)
-│   └── applyWinIcon.js          # afterPack: timbra icon.ico su DUPLO.exe
-└── src/
-    ├── logger.js                # electron-log (console + file)
-    ├── hasher.js                # crypto nativo: chunk 1 MB, poi stream SHA-256/MD5
-    ├── scanner.js               # walk cross-platform, filtri, raggruppamento, matchReason
-    ├── i18n.js                  # dizionari IT/EN/ES/FR (italiano default)
-    ├── locales/                 # it.json, en.json, es.json, fr.json
-    ├── dropFilter.js            # drop: fs.promises.stat, solo directory
-    ├── fileCategories.js        # estensioni hardcoded della tendina Categoria
-    ├── advancedFilters.js       # parsing formato esatto, date, KB/MB
-    ├── fuzzyName.js             # similarità nomi (Levenshtein + Dice, soglia 80%)
-    ├── nativeMenu.js            # menu nativo it/en/es/fr (Menu.buildFromTemplate)
-    ├── readme.js                # risolve README.md in dev e nel pacchetto
-    └── renderer/
-        ├── index.html
-        ├── styles.css           # palette --bg-primary / light-dark, sezioni criterio
-        ├── renderer.js          # i18n, tema, risultati per matchReason, overlay drop
-        ├── splitterMath.js      # clamp larghezza sidebar
-        └── markdown.js          # rendering del manuale in-app
-```
-
-Pipeline di scansione (tutta asincrona, non blocca l’UI):
-
-1. Normalizzazione path (`path.resolve` / `path.join`).
-2. Walk con `fs.promises` + `withFileTypes`; symlink non seguiti.
-3. Bucket per dimensione/nome/estensione/data.
-4. Hash parziale 1 MB solo sui bucket con ≥ 2 file.
-5. Hash completo in stream da 64 KB se il parziale coincide.
-6. Errori di permesso: log `warn`, si passa oltre.
-
----
-
-## Sviluppo e compilazione
-
-Requisiti: **Node.js 20 o 22**, **npm 10+**.
-
-```bash
-git clone https://github.com/IlRed89/DUPLO.git
-cd DUPLO
-npm install
-npm test
-npm start
-```
-
-| Comando | Output |
-| --- | --- |
-| `npm start` | App in sviluppo |
-| `npm test` | Test hasher, scanner, fuzzy, ZIP nominato, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
-| `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
-| `npm run build -- --win zip --x64` | ZIP Windows 64-bit in `dist/` (`DUPLO-<versione>-win-x64.zip`, cartella interna omonima) |
-| `npm run build -- --win zip --ia32` | ZIP Windows 32-bit in `dist/` (`DUPLO-<versione>-win-ia32.zip`) |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DUPLO-1.0.0-win-x64.zip` / `DUPLO-1.0.0-win-ia32.zip` dopo overlay CI) |
-| `npm run dist:linux` | `dist/linux-unpacked/` |
-| `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
-| `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
-
-La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
-
-Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`archiver`, hook `afterAllArtifactBuild`): dentro l'archivio c'è una cartella **omonima allo zip** (es. `DUPLO-1.0.0-win-x64/DUPLO.exe`), **non** `win-unpacked/`.
-
-Runtime: solo `electron-log`. `electron` / `electron-builder` / `archiver` / `resedit` / `png2icons` sono `devDependencies`. Nessun binario FFmpeg nel pacchetto.
-
-La build Windows da Linux non firma l’exe (`signAndEditExecutable: false`). L’icona viene comunque applicata da `applyWinIcon.js`. Per firmare vedi [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
-
----
-
-## Lifecycle & Release Policy (obbligatoria)
-
-Ogni modifica, funzione, bugfix o chiusura issue **non è completa** finché non sono eseguite **tutte e quattro** le sezioni seguenti. Il lavoro si chiude solo con documentazione allineata, versione SemVer, zip Windows 32/64 bit e una **nuova GitHub Release** scaricabile.
-
-### 1. Aggiornamento documentazione (Docs-as-Code)
-
-- **`README.md`**: istruzioni, requisiti, architettura, tabella di compatibilità, nomi zip della versione corrente.
-- **`CHANGELOG.md`**: voce `## [X.Y.Z] - YYYY-MM-DD` in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) (`Added` / `Changed` / `Fixed` / `Removed`).
-- **`package.json`**: incrementare `version` (patch per bugfix, minor per feature, major per breaking).
-- JSDoc + log su ogni canale IPC o metodo nuovo. Badge UI (`src/renderer/index.html`) allineato a `vX.Y.Z`.
-- Note di release in `docs/RELEASE-vX.Y.Z.md` (usate dalla pipeline overlay).
-
-Identità prodotto: **DUPLO** (`name` / `productName` / `executableName` / `app.setName` / titolo finestra / Task Manager).
-
-### 2. Preparazione degli asset ZIP (32/64 bit)
-
-Da Windows, Node 20/22, dopo `npm ci` e `npm run icons` se manca `build/icon.ico`:
-
-```bash
-npm run build -- --win zip --x64
-npm run build -- --win zip --ia32
-```
-
-`npm run build` è l’alias di `electron-builder`. Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`afterAllArtifactBuild`): la cartella dentro lo zip ha **lo stesso nome dell'archivio** (es. `DUPLO-1.0.0-win-x64/`), non `win-unpacked`.
-
-File pronti in `dist/`:
-
-| Comando | File generato (electron-builder) | Cartella unpacked di origine |
-| --- | --- | --- |
-| `--win zip --x64` | `dist/DUPLO-<version>-win-x64.zip` | `dist/win-unpacked/` |
-| `--win zip --ia32` | `dist/DUPLO-<version>-win-ia32.zip` | `dist/win-ia32-unpacked/` |
-
-Sulla GitHub Release i nomi pubblicati dalla pipeline overlay sono versionati. Aprendo lo zip trovi una cartella omonima:
-
-- `DUPLO-1.0.0-win-x64.zip` → cartella `DUPLO-1.0.0-win-x64/`
-- `DUPLO-1.0.0-win-ia32.zip` → cartella `DUPLO-1.0.0-win-ia32/`
-- `DUPLO-1.0.0-linux-x64.zip` → cartella `DUPLO-1.0.0-linux-x64/`
-- `SHA256SUMS.txt`
-
-La release stabile è il tag `v1.0.0`. La pipeline overlay usa quegli zip come runtime Electron e aggiorna `app.asar`.
-
-### 3. Sincronizzazione Git & tagging
-
-Blocco sequenziale (Conventional Commits). Tipi: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
-
-```bash
-git status
-git add .
-git commit -m "<tipo>(scope): descrizione puntuale in formato Conventional Commits>"
-git tag -a vX.Y.Z -m "Release vX.Y.Z: sintesi novità"
-git push origin main
-git push origin vX.Y.Z
-```
-
-Esempio per questa versione:
-
-```bash
-git status
-git add .
-git commit -m "chore(release): consolida DUPLO 1.0.0 stabile"
-git tag -a v1.0.0 -m "Release v1.0.0: prima versione stabile DUPLO"
-git push origin main
-git push origin v1.0.0
-```
-
-### 4. GitHub Release
-
-Ogni ciclo deve chiudersi con la GitHub Release `https://github.com/IlRed89/DUPLO/releases/tag/vX.Y.Z` e zip scaricabili (win x64, win ia32, linux x64). Un push su `package.json` / `README.md` / `CHANGELOG.md` / `src/**` / `main.js` / `preload.js` avvia il workflow overlay (`rebrand-asar-release.yml`), che pubblica il tag `v$(package.json version)`.
+Albero dei file, pipeline di scansione, comandi `npm` e protocollo di release: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Il ciclo Docs / ZIP / Git / GitHub Release è anche in [docs/RELEASE-PROTOCOL.md](docs/RELEASE-PROTOCOL.md).
 
 ---
 
