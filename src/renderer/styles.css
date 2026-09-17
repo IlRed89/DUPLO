@@ -331,6 +331,18 @@ body.is-resizing * {
   border-top: 1px solid var(--border-color);
 }
 
+.sidebar-reset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.sidebar-reset-row .btn {
+  flex: 1 1 8rem;
+  min-width: 0;
+}
+
 /* Sezioni della Sidebar */
 .panel-section {
   display: flex;
@@ -909,10 +921,13 @@ body.is-resizing * {
   display: block;
   color: var(--text-path);
   cursor: pointer;
+  border-radius: 2px;
 }
-.file-path-text:hover {
-  color: var(--primary);
+.file-path-text:hover,
+.file-path-text:focus-visible {
+  color: var(--accent-color);
   text-decoration: underline;
+  outline: none;
 }
 
 .file-meta {
@@ -1285,18 +1300,38 @@ body.is-resizing * {
 .reason-section-title {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.35rem;
   min-width: 0;
 }
 
-.reason-section-title strong {
-  font-size: 0.9rem;
-  color: var(--text-heading);
+.criteria-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
-.reason-section-title span {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+.criteria-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0.14rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--primary-glow);
+  color: var(--accent-color);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.group-criteria {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .reason-section-meta {
@@ -1358,11 +1393,8 @@ body.is-resizing * {
   accent-color: var(--accent-color);
 }
 
-.group-criteria {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--accent-color);
-  white-space: nowrap;
+.group-info .criteria-badges {
+  margin-top: 0.15rem;
 }
 
 .file-mtime {
