@@ -131,7 +131,7 @@ Il divisore verticale tra la sidebar e i risultati si **trascina**: tieni premut
 
 ### Parametri di confronto
 
-I criteri si combinano in **AND**: un file entra in un gruppo solo se soddisfa **tutti** quelli spuntati. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata.
+I criteri si combinano in **AND (intersezione)**: due file finiscono nello stesso cluster **solo se soddisfano contemporaneamente tutti** i parametri spuntati (es. Stesso Nome **e** Stessa Dimensione **e** Hash identico). Se un file coincide su un criterio ma differisce sugli altri selezionati, **non** viene raggruppato. Serve **almeno un** parametro, altrimenti la scansione viene rifiutata. L'intestazione di ogni gruppo elenca esplicitamente i criteri AND applicati (`matchedCriteria`).
 
 | Parametro | Cosa fa | Quando usarlo |
 | --- | --- | --- |
@@ -191,14 +191,18 @@ Le statistiche, a scansione finita:
 
 ## Risultati: originale e duplicati
 
-I duplicati nel pannello di destra sono **sezionati per criterio di rilevamento** (quello che ha determinato l'uguaglianza del cluster):
+I duplicati nel pannello di destra sono **sezionati per la combinazione AND di criteri** che ha determinato l'uguaglianza (non un singolo fallback). L'intestazione mostra le etichette vere (`Stessa Estensione`, `Stessa Dimensione`, `Hash`, …) unite da « + ».
 
-| Sezione | Quando compare |
+Esempi di sezioni:
+
+| Combinazione | Quando compare |
 | --- | --- |
-| **Stesso Contenuto (Hash MD5/SHA256)** | Conferma crittografica a due step |
-| **Stessa Dimensione** | Stesso numero di byte, senza hash |
-| **Stesso Nome Esatto** | Nome file identico carattere per carattere |
-| **Nomi Simili (Fuzzy Match)** | Similarità nomi ≥ 80% (Levenshtein + Dice) |
+| **Stesso Contenuto (Hash MD5/SHA256)** | Hash attivo (da solo o insieme ad altri criteri AND) |
+| **Stessa Dimensione** | Solo dimensione, senza hash |
+| **Stesso Nome Esatto** | Solo nome esatto |
+| **Stessa Estensione** | Solo estensione (non viene più etichettata come «Stessa Dimensione») |
+| **Nomi Simili (Fuzzy Match)** | Similarità nomi ≥ 80% |
+| **Stessa Dimensione + Stessa Estensione + Hash** | Tutti e tre spuntati: il cluster soddisfa l'intersezione |
 
 Ogni macro-sezione ha intestazione tradotta, conteggio gruppi/file e si **comprime/espande**. Dentro restano i set identici (card di gruppo).
 
@@ -209,8 +213,8 @@ In ogni gruppo:
 
 Cosa puoi fare su ogni riga:
 
-- spuntare la **checkbox** (sui duplicati) per la selezione multipla rapida, anche a livello di sezione o di gruppo;
-- **Apri percorso** (o clic sul path) per aprire Esplora file / Finder sulla posizione;
+- spuntare la **checkbox** (sui duplicati) per la selezione multipla rapida. «Seleziona duplicati» / «Deseleziona duplicati» è un **toggle a due vie** (sezione o gruppo): se tutte le caselle target sono già spuntate, il click le toglie; altrimenti le spunta tutte;
+- **Apri percorso** (o clic sul path) per aprire Esplora file / Finder sulla posizione. I percorsi lunghi restano visibili per intero: la riga scorre in orizzontale (`overflow-x: auto`) e il tooltip nativo `title` mostra il path assoluto; i pulsanti e le checkbox non si comprimono (`flex-shrink: 0`);
 - **Rinomina** il file nella stessa cartella;
 - leggere la **data di modifica**;
 - sul duplicato, **Elimina** per cancellare **solo quel file**, dopo una conferma.
