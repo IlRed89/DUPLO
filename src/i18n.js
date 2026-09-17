@@ -22,7 +22,7 @@
   /** Chiave `localStorage` della preferenza lingua. */
   const STORAGE_KEY = 'duplo.lang';
   /** Ordine di presentazione delle macro-sezioni risultati. */
-  const MATCH_REASON_ORDER = ['hash', 'size', 'name', 'fuzzy'];
+  const MATCH_REASON_ORDER = ['hash', 'size', 'name', 'fuzzy', 'extension', 'date'];
 
   /** @type {Record<string, Record<string, string>>} */
   const dictionaries = Object.create(null);

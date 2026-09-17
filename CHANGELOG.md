@@ -32,6 +32,10 @@ Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked
 
 ### Fixed
 
+- Toggle deselezione rapida per gruppi e sezioni: se tutti i duplicati target sono già selezionati, il click li deseleziona e l'etichetta torna a «Seleziona duplicati».
+- Logica cumulativa AND per i criteri di ricerca multipli: un cluster esiste solo se i file soddisfano contemporaneamente tutti i parametri spuntati; l'intestazione elenca `matchedCriteria`.
+- Scorrimento orizzontale del percorso completo nelle righe duplicato (`overflow-x: auto`), con `title` sul path assoluto e pulsanti/checkbox a `flex-shrink: 0`.
+- Etichettatura criteri: «Stessa estensione» (e data/hash) non viene più mostrata come «Stessa dimensione» (rimosso il fallback hardcoded su `size`).
 - Gli stream di hashing (`fs.createReadStream`) chiudono e `destroy()` il descriptor su `error`, `end` e `close`, per evitare file lockati su Windows (EBUSY).
 - Input vuoti (path, cartelle, date non impostate) intercettati a monte: niente `UnhandledPromiseRejection` su IPC `scan:start` / hash / delete. Un path di soli spazi non viene più risolto come directory corrente (`path.resolve('')`).
 - Dopo il raggruppamento preliminare l'array piatto dei file candidati viene rilasciato: in RAM restano solo i bucket con ≥ 2 elementi.

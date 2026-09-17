@@ -37,6 +37,29 @@ test('t() interpola i placeholder e cade sull\'italiano se manca la chiave', () 
   assert.equal(i18n.t('reason.fuzzy').includes('Fuzzy'), true);
 });
 
-test('MATCH_REASON_ORDER copre i quattro criteri di rilevamento', () => {
-  assert.deepEqual(i18n.MATCH_REASON_ORDER, ['hash', 'size', 'name', 'fuzzy']);
+test('MATCH_REASON_ORDER copre i criteri di rilevamento', () => {
+  assert.deepEqual(i18n.MATCH_REASON_ORDER, ['hash', 'size', 'name', 'fuzzy', 'extension', 'date']);
+});
+
+test('toggle Seleziona/Deseleziona e criteri AND sono tradotti in it/en/es/fr', () => {
+  const keys = [
+    'results.selectDuplicates',
+    'results.deselectDuplicates',
+    'reason.extension',
+    'reason.date',
+    'reason.andJoin',
+    'reason.applied'
+  ];
+  ['it', 'en', 'es', 'fr'].forEach((lang) => {
+    i18n.setLanguage(lang);
+    keys.forEach((key) => {
+      const value = i18n.t(key);
+      assert.notEqual(value, key, lang + ' manca ' + key);
+      assert.ok(value.length > 0, lang + ' ' + key + ' vuota');
+    });
+  });
+  i18n.setLanguage('it');
+  assert.equal(i18n.t('results.selectDuplicates'), 'Seleziona duplicati');
+  assert.equal(i18n.t('results.deselectDuplicates'), 'Deseleziona duplicati');
+  assert.equal(i18n.t('reason.extension'), 'Stessa Estensione');
 });
