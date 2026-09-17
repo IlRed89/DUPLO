@@ -34,7 +34,7 @@ DUPLO **non è un unico exe portatile**: la release contiene una **cartella** co
 3. Entra nella cartella estratta e fai doppio clic su **DUPLO.exe**.
 4. Se compare **Windows SmartScreen**, leggi il riquadro [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice) qui sotto.
 
-Lo zip Windows è **piatto**: dopo l’estrazione trovi `DUPLO.exe` e le `.dll` **nella stessa cartella**, senza una sottocartella padre. Non spostare solo l’exe.
+Lo zip contiene una cartella **con lo stesso nome dell'archivio** (es. `DUPLO-1.0.0-win-x64`), non `win-unpacked`. Dentro trovi `DUPLO.exe` e le `.dll`. Non spostare solo l'exe.
 
 ### Tabella di compatibilità
 
@@ -316,7 +316,7 @@ DUPLO/
 │   └── icon.icns                # macOS
 ├── scripts/
 │   ├── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
-│   ├── flattenWinZip.js         # ZIP Windows piatto (archiver, exe/dll in radice)
+│   ├── flattenWinZip.js         # ZIP: cartella omonima all'archivio (non win-unpacked)
 │   └── applyWinIcon.js          # afterPack: timbra icon.ico su DUPLO.exe
 └── src/
     ├── logger.js                # electron-log (console + file)
@@ -362,18 +362,18 @@ npm start
 | Comando | Output |
 | --- | --- |
 | `npm start` | App in sviluppo |
-| `npm test` | Test hasher, scanner, fuzzy, ZIP piatto, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
+| `npm test` | Test hasher, scanner, fuzzy, ZIP nominato, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
-| `npm run build -- --win zip --x64` | ZIP Windows 64-bit piatto in `dist/` (`DUPLO-<versione>-win-x64.zip`, poi riarrotato da `flattenWinZip.js`) |
-| `npm run build -- --win zip --ia32` | ZIP Windows 32-bit piatto in `dist/` (`DUPLO-<versione>-win-ia32.zip`) |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit **piatti** (`DUPLO-1.0.0-win-x64.zip` / `DUPLO-1.0.0-win-ia32.zip` dopo overlay CI, o i nomi electron-builder in `dist/`) |
+| `npm run build -- --win zip --x64` | ZIP Windows 64-bit in `dist/` (`DUPLO-<versione>-win-x64.zip`, cartella interna omonima) |
+| `npm run build -- --win zip --ia32` | ZIP Windows 32-bit in `dist/` (`DUPLO-<versione>-win-ia32.zip`) |
+| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DUPLO-1.0.0-win-x64.zip` / `DUPLO-1.0.0-win-ia32.zip` dopo overlay CI) |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 | `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
 
 La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
 
-Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`archiver`, hook `afterAllArtifactBuild`): in radice ci sono `DUPLO.exe` e le dll, **senza** cartella padre (`DUPLO-win32-x64` o simile).
+Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`archiver`, hook `afterAllArtifactBuild`): dentro l'archivio c'è una cartella **omonima allo zip** (es. `DUPLO-1.0.0-win-x64/DUPLO.exe`), **non** `win-unpacked/`.
 
 Runtime: solo `electron-log`. `electron` / `electron-builder` / `archiver` / `resedit` / `png2icons` sono `devDependencies`. Nessun binario FFmpeg nel pacchetto.
 
@@ -395,7 +395,7 @@ Ogni modifica, funzione, bugfix o chiusura issue **non è completa** finché non
 
 Identità prodotto: **DUPLO** (`name` / `productName` / `executableName` / `app.setName` / titolo finestra / Task Manager).
 
-### 2. Preparazione degli asset ZIP (32/64 bit, senza cartelle intermedie)
+### 2. Preparazione degli asset ZIP (32/64 bit)
 
 Da Windows, Node 20/22, dopo `npm ci` e `npm run icons` se manca `build/icon.ico`:
 
@@ -404,7 +404,7 @@ npm run build -- --win zip --x64
 npm run build -- --win zip --ia32
 ```
 
-`npm run build` è l’alias di `electron-builder`. Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`afterAllArtifactBuild`): **exe e dll in radice**, senza cartella padre `DUPLO-win32-x64`.
+`npm run build` è l’alias di `electron-builder`. Gli ZIP Windows vengono riarrotati da `scripts/flattenWinZip.js` (`afterAllArtifactBuild`): la cartella dentro lo zip ha **lo stesso nome dell'archivio** (es. `DUPLO-1.0.0-win-x64/`), non `win-unpacked`.
 
 File pronti in `dist/`:
 
@@ -413,11 +413,11 @@ File pronti in `dist/`:
 | `--win zip --x64` | `dist/DUPLO-<version>-win-x64.zip` | `dist/win-unpacked/` |
 | `--win zip --ia32` | `dist/DUPLO-<version>-win-ia32.zip` | `dist/win-ia32-unpacked/` |
 
-Sulla GitHub Release i nomi pubblicati dalla pipeline overlay sono piatti e versionati:
+Sulla GitHub Release i nomi pubblicati dalla pipeline overlay sono versionati. Aprendo lo zip trovi una cartella omonima:
 
-- `DUPLO-1.0.0-win-x64.zip` (Windows 64-bit)
-- `DUPLO-1.0.0-win-ia32.zip` (Windows 32-bit)
-- `DUPLO-1.0.0-linux-x64.zip` (Linux 64-bit)
+- `DUPLO-1.0.0-win-x64.zip` → cartella `DUPLO-1.0.0-win-x64/`
+- `DUPLO-1.0.0-win-ia32.zip` → cartella `DUPLO-1.0.0-win-ia32/`
+- `DUPLO-1.0.0-linux-x64.zip` → cartella `DUPLO-1.0.0-linux-x64/`
 - `SHA256SUMS.txt`
 
 La release stabile è il tag `v1.0.0`. La pipeline overlay usa quegli zip come runtime Electron e aggiorna `app.asar`.
