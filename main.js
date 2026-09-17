@@ -359,7 +359,7 @@ ipcMain.handle('dialog:select-directory', async () => {
  *
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {unknown} rawPath
- * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>}
+ * @returns {Promise<{ok: boolean, directory: string|null, skipped: {path: string, reason: string}|null}>
  */
 ipcMain.handle('validate-and-add-folder', async (_event, rawPath) => {
   logger.info(`[IPC] validate-and-add-folder ricevuto: ${JSON.stringify(rawPath)}`);
@@ -386,7 +386,7 @@ ipcMain.handle('validate-and-add-folder', async (_event, rawPath) => {
  *
  * @param {Electron.IpcMainInvokeEvent} _event
  * @param {unknown} rawPaths
- * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>}
+ * @returns {Promise<{directories: string[], skipped: Array<{path: string, reason: string}>}>
  */
 ipcMain.handle('fs:filter-directories', async (_event, rawPaths) => {
   const list = Array.isArray(rawPaths) ? rawPaths : [];
@@ -688,15 +688,17 @@ ipcMain.handle('report:export', async (_event, payload) => {
     }
 
     if (format === 'csv') {
-      let csvContent = 'Gruppo,Criterio,Hash,Dimensione_Byte,Dimensione_Leggibile,Percorso_File,Data_Modifica\n';
+      let csvContent = 'Gruppo,Criteri_AND,Criterio,Hash,Dimensione_Byte,Dimensione_Leggibile,Percorso_File,Data_Modifica\n';
       groups.forEach((g) => {
         const files = Array.isArray(g.files) ? g.files : [];
         files.forEach((f) => {
           const escPath = `"${String((f && f.path) || '').replace(/"/g, '""')}"`;
           const escHash = `"${String((g && g.hash) || '').replace(/"/g, '""')}"`;
           const escReason = `"${String((g && g.matchReason) || '').replace(/"/g, '""')}"`;
+          const criteria = Array.isArray(g && g.matchedCriteria) ? g.matchedCriteria.join('+') : '';
+          const escCriteria = `"${criteria.replace(/"/g, '""')}"`;
           const readableSize = formatBytes(g && g.size);
-          csvContent += `${g.groupId},${escReason},${escHash},${g.size},"${readableSize}",${escPath},"${(f && f.mtimeDate) || ''}"\n`;
+          csvContent += `${g.groupId},${escCriteria},${escReason},${escHash},${g.size},"${readableSize}",${escPath},"${(f && f.mtimeDate) || ''}"\n`;
         });
       });
       await fsp.writeFile(savePath, csvContent, 'utf-8');
