@@ -23,7 +23,7 @@ const fsp = fs.promises;
 const { logger, logSystemInfo, getLogFilePath } = require('./src/logger');
 const { ScanCancellationToken, findDuplicates, normalizeCrossPlatformPath } = require('./src/scanner');
 const { loadReadme, resolveReadmePath } = require('./src/readme');
-const { createNativeMenu } = require('./src/nativeMenu');
+const { createNativeMenu, getWindowTitle } = require('./src/nativeMenu');
 const { filterDirectoryPathsAsync, validateDroppedPath } = require('./src/dropFilter');
 const { resolveIncludeExtensions, normalizeDateRange } = require('./src/advancedFilters');
 const { formatBytes } = require('./src/formatBytes');
@@ -688,14 +688,15 @@ ipcMain.handle('report:export', async (_event, payload) => {
     }
 
     if (format === 'csv') {
-      let csvContent = 'Gruppo,Hash,Dimensione_Byte,Dimensione_Leggibile,Percorso_File,Data_Modifica\n';
+      let csvContent = 'Gruppo,Criterio,Hash,Dimensione_Byte,Dimensione_Leggibile,Percorso_File,Data_Modifica\n';
       groups.forEach((g) => {
         const files = Array.isArray(g.files) ? g.files : [];
         files.forEach((f) => {
           const escPath = `"${String((f && f.path) || '').replace(/"/g, '""')}"`;
           const escHash = `"${String((g && g.hash) || '').replace(/"/g, '""')}"`;
+          const escReason = `"${String((g && g.matchReason) || '').replace(/"/g, '""')}"`;
           const readableSize = formatBytes(g && g.size);
-          csvContent += `${g.groupId},${escHash},${g.size},"${readableSize}",${escPath},"${(f && f.mtimeDate) || ''}"\n`;
+          csvContent += `${g.groupId},${escReason},${escHash},${g.size},"${readableSize}",${escPath},"${(f && f.mtimeDate) || ''}"\n`;
         });
       });
       await fsp.writeFile(savePath, csvContent, 'utf-8');
@@ -728,7 +729,12 @@ ipcMain.handle('language-changed', async (_event, lang) => {
   logger.info(`[IPC] language-changed ricevuto dal Renderer: "${lang}"`);
   try {
     const applied = createNativeMenu(lang, nativeMenuActions());
-    return { success: true, language: applied };
+    const title = getWindowTitle(applied);
+    if (mainWindow && !mainWindow.isDestroyed() && typeof mainWindow.setTitle === 'function') {
+      mainWindow.setTitle(title);
+    }
+    logger.info(`[IPC] language-changed applicato: lingua="${applied}" titolo="${title}"`);
+    return { success: true, language: applied, windowTitle: title };
   } catch (err) {
     logger.error(`[IPC] Aggiornamento menu nativo fallito: ${err.message}`);
     return { success: false, error: err.message };
