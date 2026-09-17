@@ -7,6 +7,21 @@ e il progetto adotta [Semantic Versioning](https://semver.org/lang/it/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Modal di rinomina file interno non funzionante (`window.prompt` silenzioso in Electron): ora un dialogo a tema con input precompilato invia `rename-file` al Main (`fs.promises.rename`) e aggiorna subito path/nome nel DOM.
+- Ordinamento sequenziale e deterministico dei gruppi di risultati: i cluster sono ordinati per dimensione decrescente (poi nome File #1) e ricevono `groupId` 1..N senza salti.
+
+### Changed
+
+- Sostituzione degli `alert()` / `confirm()` / `prompt()` nativi con modali/dialoghi integrati nel tema dell'app (`[data-theme="dark"|"light"]`).
+- Rimozione della nozione di «originale/duplicato» in favore della numerazione progressiva (File #1, #2, …, per data di modifica) e della selezione «dal 2° in poi».
+- Terminologia da «Spreco» a «Dimensione»; all'avvio e su Azzera Filtri nessun criterio di confronto è spuntato.
+
+### Removed
+
+- Tasti e metodi di esportazione JSON/CSV.
+
 ## [1.0.0] - 2026-09-16
 
 Prima release stabile pubblica. Applicazione desktop Electron (cartella unpacked, non un exe singolo).
