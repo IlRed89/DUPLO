@@ -82,15 +82,14 @@ npm start
 
 | Comando | Output |
 | --- | --- |
-| `npm start` | App in sviluppo |
+| `npm start` | App in sviluppo (`electron .`) |
 | `npm test` | Test hasher, scanner, fuzzy, ZIP nominato, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
 | `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
-| `npm run build -- --win zip --x64` | ZIP Windows 64-bit in `dist/` (`DUPLO-<versione>-win-x64.zip`, cartella interna omonima) |
-| `npm run build -- --win zip --ia32` | ZIP Windows 32-bit in `dist/` (`DUPLO-<versione>-win-ia32.zip`) |
-| `npm run dist:win` | ZIP Windows 64-bit e 32-bit (`DUPLO-1.0.0-win-x64.zip` / `DUPLO-1.0.0-win-ia32.zip` dopo overlay CI) |
+| `npm run dist:win:x64` | ZIP Windows 64-bit (`electron-builder --win zip --x64` → `DUPLO-<versione>-win-x64.zip`) |
+| `npm run dist:win:ia32` | ZIP Windows 32-bit (`electron-builder --win zip --ia32` → `DUPLO-<versione>-win-ia32.zip`) |
+| `npm run dist:win` / `npm run dist` | ZIP Windows 64-bit e 32-bit insieme |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
 | `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
-| `npm run dist` | ZIP Windows (x64+ia32) + cartella Linux unpacked |
 
 La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
 
