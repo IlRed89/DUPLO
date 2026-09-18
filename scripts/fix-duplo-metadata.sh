@@ -12,14 +12,14 @@ if [[ -f package-lock.json ]]; then
 fi
 
 gh repo edit "$REPO" \
-  --description "DUPLO — trova e pulisce file duplicati (Electron, hash SHA-256/MD5)." \
+  --description "DUPLO — Duplicate File Finder desktop (Electron / Node.js / JavaScript). Hash SHA-256/MD5." \
   --homepage "https://github.com/IlRed89/DUPLO" \
   || true
 
 gh api -X PUT "/repos/${REPO}/topics" \
   -H "Accept: application/vnd.github+json" \
   --input - <<'JSON' || true
-{"names":["duplicate-files","file-cleanup","electron","sha256","windows"]}
+{"names":["electron","javascript","nodejs","duplicate-files","windows"]}
 JSON
 
 tmp="$(mktemp -d)"

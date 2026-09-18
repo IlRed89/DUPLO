@@ -33,6 +33,20 @@ test('win.icon punta a build/icon.ico e il file esiste', () => {
   assert.ok(fs.statSync(ico).size > 1000, 'icon.ico non deve essere un placeholder vuoto');
 });
 
+test('package.json è Electron/JS: script dist win x64/ia32, nessun golang', () => {
+  assert.equal(pkg.scripts.start, 'electron .');
+  assert.ok(pkg.scripts['dist:win:x64']);
+  assert.ok(pkg.scripts['dist:win:ia32']);
+  assert.match(pkg.scripts['dist:win:x64'], /--win zip --x64/);
+  assert.match(pkg.scripts['dist:win:ia32'], /--win zip --ia32/);
+  const blob = JSON.stringify(pkg);
+  assert.doesNotMatch(blob, /golang/i);
+  assert.ok(Array.isArray(pkg.keywords));
+  assert.ok(pkg.keywords.includes('electron'));
+  assert.ok(pkg.keywords.includes('javascript'));
+  assert.equal(pkg.keywords.includes('golang'), false);
+});
+
 test('hasher.js usa solo crypto nativo', () => {
   const hasher = fs.readFileSync(path.join(root, 'src', 'hasher.js'), 'utf8');
   assert.match(hasher, /require\('crypto'\)/);

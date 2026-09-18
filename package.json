@@ -2,22 +2,23 @@
   "name": "duplo",
   "productName": "DUPLO",
   "version": "1.0.0",
-  "description": "DUPLO — tool desktop per trovare e pulire file duplicati (Electron, hash SHA-256/MD5).",
+  "description": "DUPLO — Duplicate File Finder desktop (Electron / Node.js / JavaScript). Hash SHA-256/MD5.",
   "main": "main.js",
   "author": "Fabio Rossi",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
     "test": "node --test src/**/*.test.js",
     "icons": "node scripts/generate-icons.js",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder --win --linux",
-    "dist:win": "electron-builder --win",
-    "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\"",
-    "dist:win-dir": "electron-builder --win dir",
+    "build": "electron-builder",
+    "dist": "electron-builder --win zip --x64 --ia32",
+    "dist:win": "electron-builder --win zip --x64 --ia32",
+    "dist:win:x64": "electron-builder --win zip --x64",
+    "dist:win:ia32": "electron-builder --win zip --ia32",
+    "dist:linux": "electron-builder --linux dir",
     "dist:mac": "electron-builder --mac dir",
-    "dist:linux": "electron-builder --linux dir"
+    "pack": "electron-builder --dir",
+    "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\""
   },
   "dependencies": {
     "electron-log": "^5.4.4"
@@ -98,5 +99,21 @@
       "category": "Utility",
       "executableName": "DUPLO"
     }
-  }
+  },
+  "homepage": "https://github.com/IlRed89/DUPLO",
+  "bugs": {
+    "url": "https://github.com/IlRed89/DUPLO/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IlRed89/DUPLO.git"
+  },
+  "keywords": [
+    "electron",
+    "javascript",
+    "nodejs",
+    "duplicate-files",
+    "desktop",
+    "windows"
+  ]
 }
