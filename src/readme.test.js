@@ -14,6 +14,7 @@ test('README.md del progetto è trovato e contiene le sezioni del manuale', () =
   const loaded = loadReadme();
   assert.ok(loaded.path.endsWith('README.md'));
   assert.match(loaded.content, /# DUPLO/);
+  assert.match(loaded.content, /## Download & Installazione/);
   assert.match(loaded.content, /## Avvio/);
   assert.match(loaded.content, /## Flusso consigliato/);
   assert.match(loaded.content, /Pulizia Rapida/);
