@@ -9,10 +9,12 @@ Release stabile del **18 settembre 2026**. App desktop **Electron / Node.js / Ja
 | `DUPLO-1.0.0-win-x64.zip` | Windows 64-bit |
 | `DUPLO-1.0.0-win-ia32.zip` | Windows 32-bit |
 | `DUPLO-1.0.0-linux-x64.zip` | Linux 64-bit |
+| `DUPLO-1.0.0-mac-arm64.zip` | macOS Apple Silicon |
+| `DUPLO-1.0.0-mac-x64.zip` | macOS Intel |
 
-Confronta l’hash con `SHA256SUMS.txt`. L’eseguibile non è firmato: su Windows usa **Ulteriori informazioni → Esegui comunque**.
+Confronta l’hash con `SHA256SUMS.txt`. L’eseguibile non è firmato: su Windows usa **Ulteriori informazioni → Esegui comunque**. Su macOS: tasto destro → Apri.
 
-Linux **32-bit non è disponibile**: Electron 33 non pubblica più un runtime Linux ia32. macOS: compila su un Mac con `npm run dist:mac`.
+Linux **32-bit non è disponibile**: Electron 33 non pubblica più un runtime Linux ia32.
 
 ## Cosa c’è in questa build
 
