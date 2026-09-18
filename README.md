@@ -12,15 +12,40 @@ Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programm
 
 Indice:
 
-1. [Avvio](#avvio)
-2. [Flusso consigliato](#flusso-consigliato-prima-volta)
-3. [Interfaccia](#interfaccia)
-4. [Come funziona la scansione](#come-funziona-la-scansione)
-5. [Risultati](#risultati-gruppi-e-numerazione-progressiva)
-6. [File di log (troubleshooting)](#file-di-log-troubleshooting)
-7. [Consigli, FAQ, limitazioni](#consigli-pratici)
-8. [Sviluppo](#sviluppo)
-9. [Licenza](#licenza)
+1. [Download & Installazione](#download--installazione)
+2. [Avvio](#avvio)
+3. [Flusso consigliato](#flusso-consigliato-prima-volta)
+4. [Interfaccia](#interfaccia)
+5. [Come funziona la scansione](#come-funziona-la-scansione)
+6. [Risultati](#risultati-gruppi-e-numerazione-progressiva)
+7. [File di log (troubleshooting)](#file-di-log-troubleshooting)
+8. [Consigli, FAQ, limitazioni](#consigli-pratici)
+9. [Sviluppo](#sviluppo)
+10. [Licenza](#licenza)
+
+---
+
+## Download & Installazione
+
+Gli archivi ufficiali sono sulla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest). Scegli lo zip adatto al tuo PC:
+
+| File | Per chi |
+| --- | --- |
+| **`DUPLO-1.0.0-win-x64.zip`** | Windows 10 / 11 **64-bit** — la maggior parte dei PC |
+| **`DUPLO-1.0.0-win-ia32.zip`** | Windows **32-bit** / processori datati |
+
+1. Scarica lo zip dalla release `v1.0.0`.
+2. Estrai **tutto** l'archivio in una cartella (Desktop, Programmi, USB…). Dentro trovi una cartella omonima allo zip (`DUPLO-1.0.0-win-x64/` o `DUPLO-1.0.0-win-ia32/`), con `DUPLO.exe` e le `.dll`. Non c'è `win-unpacked`.
+3. Entra in quella cartella e fai doppio clic su **DUPLO.exe**. Se sposti solo l'exe, l'app non parte.
+
+### Windows SmartScreen (file non firmati)
+
+DUPLO è open source e **non è firmato** con un certificato Authenticode. Windows può mostrare «Windows ha protetto il PC»:
+
+1. Clicca **Ulteriori informazioni**.
+2. Clicca **Esegui comunque**.
+
+Non disattivare SmartScreen a livello di sistema. Dettaglio e firma del codice: [SmartScreen e firma del codice](#windows-smartscreen-e-firma-del-codice).
 
 ---
 
@@ -314,11 +339,11 @@ npm start
 ### Compilare gli ZIP Windows (x64 e ia32)
 
 ```bash
-npm run dist:win:x64
-npm run dist:win:ia32
+npm run dist:x64
+npm run dist:ia32
 ```
 
-Oppure entrambi: `npm run dist` / `npm run dist:win` (`electron-builder --win zip --x64 --ia32`).
+Oppure entrambi: `npm run dist` (`electron-builder --win zip --x64 --ia32`). Alias equivalenti: `dist:win:x64` / `dist:win:ia32`.
 
 Dopo la build, in `dist/` trovi:
 
