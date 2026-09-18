@@ -38,6 +38,18 @@ function unpackedDirForZip(zipPath, outDir) {
   if (base.includes('ia32')) {
     return path.join(outDir, 'win-ia32-unpacked');
   }
+  if (base.includes('linux') && (base.includes('arm64') || base.includes('arm'))) {
+    return path.join(outDir, 'linux-arm64-unpacked');
+  }
+  if (base.includes('linux')) {
+    return path.join(outDir, 'linux-unpacked');
+  }
+  if (base.includes('mac') && (base.includes('arm64') || base.includes('arm'))) {
+    return path.join(outDir, 'mac-arm64');
+  }
+  if (base.includes('mac')) {
+    return path.join(outDir, 'mac');
+  }
   return path.join(outDir, 'win-unpacked');
 }
 
@@ -78,7 +90,6 @@ function writeReleaseZip(sourceDir, destZip) {
       archive.on('error', reject);
 
       archive.pipe(output);
-      // Secondo argomento = prefisso dentro lo zip (non `false`: eviterebbe la cartella).
       archive.directory(sourceDir, wrapper);
       archive.finalize();
     } catch (err) {
@@ -87,15 +98,8 @@ function writeReleaseZip(sourceDir, destZip) {
   });
 }
 
-/** @deprecated alias: il nome storico restava "piatto"; ora avvolge con il nome zip. */
 const writeFlatZip = writeReleaseZip;
 
-/**
- * Firma richiesta da electron-builder.
- *
- * @param {{ artifactPaths?: string[], outDir?: string }} context
- * @returns {Promise<string[]>}
- */
 async function flattenWinZip(context) {
   const outDir = (context && context.outDir) || path.join(__dirname, '..', 'dist');
   const artifacts = (context && context.artifactPaths) || [];
@@ -104,9 +108,6 @@ async function flattenWinZip(context) {
   for (const zipPath of artifacts) {
     try {
       if (!zipPath || !String(zipPath).toLowerCase().endsWith('.zip')) {
-        continue;
-      }
-      if (!/win/i.test(path.basename(zipPath))) {
         continue;
       }
       const sourceDir = unpackedDirForZip(zipPath, outDir);

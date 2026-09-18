@@ -17,8 +17,8 @@
     "dist:win": "electron-builder --win zip --x64 --ia32",
     "dist:win:x64": "electron-builder --win zip --x64",
     "dist:win:ia32": "electron-builder --win zip --ia32",
-    "dist:linux": "electron-builder --linux dir",
-    "dist:mac": "electron-builder --mac dir",
+    "dist:linux": "electron-builder --linux zip --x64",
+    "dist:mac": "electron-builder --mac zip --x64 --arm64",
     "pack": "electron-builder --dir",
     "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\""
   },
@@ -93,19 +93,33 @@
     },
     "mac": {
       "target": [
-        "dir"
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "icon": "build/icon.icns",
       "category": "public.app-category.utilities",
-      "identity": null
+      "identity": null,
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "executableName": "DUPLO"
     },
     "linux": {
       "target": [
-        "dir"
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png",
       "category": "Utility",
-      "executableName": "DUPLO"
+      "executableName": "DUPLO",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
     }
   },
   "homepage": "https://github.com/IlRed89/DUPLO",
@@ -122,6 +136,8 @@
     "nodejs",
     "duplicate-files",
     "desktop",
-    "windows"
+    "windows",
+    "linux",
+    "macos"
   ]
 }

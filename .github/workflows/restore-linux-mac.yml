@@ -1,0 +1,74 @@
+name: Restore DUPLO v1.0.0 Linux and macOS ZIP
+
+on:
+  push:
+    paths:
+      - '.github/workflows/restore-linux-mac.yml'
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build Linux ZIP (x64)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:linux
+      - name: List ZIP artifacts
+        run: ls -la dist/*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duplo-linux-zips
+          path: dist/*.zip
+          if-no-files-found: error
+      - name: Attach Linux ZIP to GitHub Release v1.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ls -la dist/DUPLO-1.0.0-linux-x64.zip
+          gh release upload v1.0.0 dist/DUPLO-1.0.0-linux-x64.zip --clobber --repo "${GITHUB_REPOSITORY}"
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 50
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build macOS ZIP (x64 and arm64)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac
+      - name: List ZIP artifacts
+        run: ls -la dist/*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duplo-macos-zips
+          path: dist/*.zip
+          if-no-files-found: error
+      - name: Attach macOS ZIP to GitHub Release v1.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ls -la dist/DUPLO-1.0.0-mac-x64.zip dist/DUPLO-1.0.0-mac-arm64.zip
+          gh release upload v1.0.0 \
+            dist/DUPLO-1.0.0-mac-x64.zip \
+            dist/DUPLO-1.0.0-mac-arm64.zip \
+            --clobber \
+            --repo "${GITHUB_REPOSITORY}"

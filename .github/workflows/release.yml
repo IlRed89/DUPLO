@@ -6,12 +6,23 @@ on:
       - 'v*'
   workflow_dispatch:
 
-permissions:
-  contents: write
+permissions: write-all
 
 jobs:
   build-and-release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist
+          - os: ubuntu-latest
+            script: dist:linux
+          - os: macos-latest
+            script: dist:mac
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    permissions: write-all
 
     steps:
       - name: Checkout Repository
@@ -26,16 +37,34 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Windows ZIP Packages (x64 & ia32)
-        run: npm run dist
+      - name: Build ZIP packages
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run ${{ matrix.script }}
+
+      - name: List ZIP artifacts
+        shell: bash
+        run: ls -la dist/*.zip
+
+      - name: Keep ZIP artifacts on the Actions run
+        uses: actions/upload-artifact@v4
+        with:
+          name: duplo-zips-${{ matrix.os }}
+          path: dist/*.zip
+          if-no-files-found: error
 
       - name: Upload Binaries to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.zip
-          name: "DUPLO v${{ github.ref_name }}"
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/*.zip)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "Nessuno zip in dist/" >&2
+            ls -la dist || true
+            exit 1
+          fi
+          TAG="${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0' }}"
+          gh release upload "$TAG" "${files[@]}" --clobber --repo "${GITHUB_REPOSITORY}"
