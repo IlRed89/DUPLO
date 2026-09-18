@@ -55,7 +55,9 @@
       "build/icon.ico",
       "build/icon.svg",
       "package.json",
+      "!dist/*",
       "!dist/**",
+      "!.github/*",
       "!.github/**",
       "!.git/**"
     ],
