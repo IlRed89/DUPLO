@@ -18,9 +18,9 @@ Linux **32-bit non è disponibile**: Electron 33 non pubblica più un runtime Li
 
 - Scansione duplicati: dimensione, hash SHA-256/MD5, nome, estensione, data
 - Overlay drag & drop a tutta finestra (path nativo nel preload, solo cartelle)
-- Menu nativo it/en, categorie file, splitter, Ricerca Avanzata, nomi simili
+- Menu nativo it/en/es/fr, categorie file, splitter, Ricerca Avanzata, nomi simili
 - Guida in-app, log persistenti, rinomina a tema, pulizia con conferma (niente export JSON/CSV)
-- Identità **DUPLO** (`DUPLO.exe`, titolo finestra, Task Manager)
+- Identità **DUPLO** (`DUPLO.exe`, `appId` `com.duplo.app`)
 
 Eliminazione **definitiva** (niente Cestino). Conferma sempre prima della pulizia.
 

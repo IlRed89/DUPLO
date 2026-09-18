@@ -12,6 +12,8 @@
     "icons": "node scripts/generate-icons.js",
     "build": "electron-builder",
     "dist": "electron-builder --win zip --x64 --ia32",
+    "dist:x64": "electron-builder --win zip --x64",
+    "dist:ia32": "electron-builder --win zip --ia32",
     "dist:win": "electron-builder --win zip --x64 --ia32",
     "dist:win:x64": "electron-builder --win zip --x64",
     "dist:win:ia32": "electron-builder --win zip --ia32",
@@ -31,7 +33,7 @@
     "resedit": "^2.0.3"
   },
   "build": {
-    "appId": "com.fabiorossi.duplo",
+    "appId": "com.duplo.app",
     "productName": "DUPLO",
     "executableName": "DUPLO",
     "copyright": "Copyright © 2026 Fabio Rossi",
@@ -52,7 +54,10 @@
       "build/icon.png",
       "build/icon.ico",
       "build/icon.svg",
-      "package.json"
+      "package.json",
+      "!dist/**",
+      "!.github/**",
+      "!.git/**"
     ],
     "asar": true,
     "publish": null,
@@ -76,6 +81,7 @@
       ],
       "icon": "build/icon.ico",
       "executableName": "DUPLO",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}",
       "signAndEditExecutable": false,
       "certificateFile": "${env.WIN_CSC_FILE}",
       "certificatePassword": "${env.WIN_CSC_PASSWORD}",

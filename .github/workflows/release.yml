@@ -1,0 +1,51 @@
+name: Release DUPLO
+
+# Build ufficiale Windows (x64 + ia32) e pubblicazione GitHub Release.
+# Parte su ogni push di tag v* (es. v1.0.0).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: duplo-official-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build ZIP Windows e pubblica release
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: npm
+
+      - name: Installa dipendenze
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Compila ZIP Windows x64 e ia32
+        run: npm run dist
+
+      - name: Pubblica GitHub Release con gli zip
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          body_path: docs/RELEASE-v1.0.0.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

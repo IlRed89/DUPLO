@@ -25,7 +25,8 @@ Prima release stabile pubblica. Applicazione **desktop Electron** (cartella unpa
 - Rinomina IPC (`rename-file`): event delegation su `#resultsScrollContainer`, retry `EBUSY`, stream hash chiusi prima del resolve.
 - Guida in-app (README), log persistenti (`electron-log`), pulizia con conferma a tema.
 - ZIP Windows **x64** e **ia32** e ZIP Linux x64. Dentro lo zip una sola cartella omonima all'archivio (`DUPLO-1.0.0-win-x64/`), **non** `win-unpacked`.
-- Identità prodotto **DUPLO**: `name` `duplo`, `productName` / `executableName` `DUPLO`.
+- Identità prodotto **DUPLO**: `name` `duplo`, `productName` / `executableName` `DUPLO`, `appId` `com.duplo.app`.
+- Pipeline ufficiale GitHub Actions (`release.yml`): runner `windows-latest`, `npm run dist`, pubblicazione automatica degli zip sulla Release al tag `v*`.
 
 ### Changed
 

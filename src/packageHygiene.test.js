@@ -35,10 +35,16 @@ test('win.icon punta a build/icon.ico e il file esiste', () => {
 
 test('package.json è Electron/JS: script dist win x64/ia32, nessun golang', () => {
   assert.equal(pkg.scripts.start, 'electron .');
+  assert.equal(pkg.scripts.dist, 'electron-builder --win zip --x64 --ia32');
+  assert.equal(pkg.scripts['dist:x64'], 'electron-builder --win zip --x64');
+  assert.equal(pkg.scripts['dist:ia32'], 'electron-builder --win zip --ia32');
   assert.ok(pkg.scripts['dist:win:x64']);
   assert.ok(pkg.scripts['dist:win:ia32']);
   assert.match(pkg.scripts['dist:win:x64'], /--win zip --x64/);
   assert.match(pkg.scripts['dist:win:ia32'], /--win zip --ia32/);
+  assert.equal(pkg.build.appId, 'com.duplo.app');
+  assert.equal(pkg.build.directories.output, 'dist');
+  assert.match(pkg.build.win.artifactName, /productName.*version.*win.*arch/);
   const blob = JSON.stringify(pkg);
   assert.doesNotMatch(blob, /golang/i);
   assert.ok(Array.isArray(pkg.keywords));

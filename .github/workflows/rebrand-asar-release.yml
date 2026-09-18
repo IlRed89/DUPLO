@@ -1,16 +1,9 @@
 name: Rebrand asar DUPLO negli zip
 
+# Disattivato sul push automatico: la release ufficiale è
+# `.github/workflows/release.yml` (Windows, tag v*).
+# Resta disponibile a mano se serve un overlay asar di emergenza.
 on:
-  push:
-    paths:
-      - ".github/workflows/rebrand-asar-release.yml"
-      - "scripts/rebrand-asar-release.sh"
-      - "main.js"
-      - "preload.js"
-      - "package.json"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "src/**"
   workflow_dispatch:
 
 concurrency:
@@ -22,7 +15,7 @@ permissions:
 
 jobs:
   rebrand:
-    name: Nuova release con asar aggiornato
+    name: Overlay asar (manuale)
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
