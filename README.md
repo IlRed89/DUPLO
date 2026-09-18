@@ -1,10 +1,12 @@
 # DUPLO — Manuale d'uso
 
-**Versione 1.0.0** · Windows (64-bit e 32-bit) e Linux 64-bit · applicazione desktop Electron (cartella unpacked)
+**Versione 1.0.0** · Duplicate File Finder **portatile e moderno per Windows** (64-bit e 32-bit; anche Linux 64-bit) · applicazione desktop **Electron / Node.js / JavaScript** (cartella unpacked, niente Go, niente FFmpeg)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md) · Release: [github.com/IlRed89/DUPLO/releases](https://github.com/IlRed89/DUPLO/releases)
 
-DUPLO trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano i criteri che hai selezionato.
+**DUPLO** trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5 con `crypto` nativo), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano **tutti** i criteri che hai selezionato (scansione cumulativa **AND**).
+
+Funzionalità chiave: hash rapido a due step, ricerca **Nomi Simili (Fuzzy)**, gruppi sequenziali **Gruppo 1..N**, numerazione **File #1, #2, #3…** con selezione dal 2° in poi, modale di rinomina a tema, tema chiaro/scuro e quattro lingue (italiano predefinito, inglese, spagnolo, francese).
 
 Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programma**: in alto a destra apri **Guida**, oppure dal menu nativo **Aiuto → Guida (README)** (F1).
 
@@ -298,7 +300,36 @@ No. DUPLO non sposta nel Cestino. Controlla i path e usa la conferma a tema prim
 
 ## Sviluppo
 
-Albero dei file, pipeline di scansione, comandi `npm` e protocollo di release: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Il ciclo Docs / ZIP / Git / GitHub Release è anche in [docs/RELEASE-PROTOCOL.md](docs/RELEASE-PROTOCOL.md).
+Prerequisiti: **Node.js 20 o 22**, **npm 10+**. Stack **esclusivo**: Electron / Node.js / JavaScript.
+
+```bash
+git clone https://github.com/IlRed89/DUPLO.git
+cd DUPLO
+npm install
+npm start
+```
+
+`npm start` avvia Electron in sviluppo (`electron .`). `npm test` esegue la suite Node.
+
+### Compilare gli ZIP Windows (x64 e ia32)
+
+```bash
+npm run dist:win:x64
+npm run dist:win:ia32
+```
+
+Oppure entrambi: `npm run dist` / `npm run dist:win` (`electron-builder --win zip --x64 --ia32`).
+
+Dopo la build, in `dist/` trovi:
+
+| Architettura | File |
+| --- | --- |
+| Windows 64-bit | `DUPLO-1.0.0-win-x64.zip` |
+| Windows 32-bit | `DUPLO-1.0.0-win-ia32.zip` |
+
+Dentro ogni zip c'è **una sola cartella** con lo stesso nome dell'archivio (es. `DUPLO-1.0.0-win-x64/DUPLO.exe` + `.dll`). Non c'è `win-unpacked`. Estrai tutto e avvia `DUPLO.exe` da quella cartella. Se compare SmartScreen: **Ulteriori informazioni** → **Esegui comunque**.
+
+Albero dei file, pipeline di scansione e protocollo di release: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) · [docs/RELEASE-PROTOCOL.md](docs/RELEASE-PROTOCOL.md).
 
 ---
 
