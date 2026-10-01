@@ -1,3 +1,17 @@
+/**
+ * @file scanner.js
+ * @description Motore principale per la scansione ricorsiva delle cartelle e
+ * l'individuazione di file duplicati in base ai criteri cumulativi (logica AND).
+ *
+ * Pipeline di esecuzione:
+ * 1. Normalizzazione percorsi cartelle e validazione parametri.
+ * 2. Walk asincrono (`walkDirectory`) con scarto preventivo di file per dimensione, data, estensione.
+ * 3. Raggruppamento preliminare in bucket (chiavi composite per dimensione, estensione, nome, data).
+ * 4. Analisi di similarità nomi con Fuzzy matching (se attiva).
+ * 5. Hashing crittografico a 2 stadi (chunk 1MB -> full hash) solo sui bucket candidati.
+ * 6. Ordinamento deterministico dei gruppi (dimensione decrescente) e numerazione 1..N.
+ */
+
 'use strict';
 
 const fs = require('fs');
@@ -7,6 +21,13 @@ const { logger } = require('./logger');
 const { computePartialHash, computeFullHash } = require('./hasher');
 const { clusterByFuzzyName, FUZZY_NAME_THRESHOLD } = require('./fuzzyName');
 
+/**
+ * Normalizza un percorso rendendolo assoluto e consistente tra piattaforme diverse (Windows / Linux).
+ * Gestisce correttamente slash, backslash e spaziature accidentali.
+ *
+ * @param {unknown} rawPath Percorso da normalizzare.
+ * @returns {string} Percorso assoluto normalizzato oppure stringa vuota.
+ */
 function normalizeCrossPlatformPath(rawPath) {
   if (!rawPath || typeof rawPath !== 'string') {
     return '';
@@ -19,18 +40,34 @@ function normalizeCrossPlatformPath(rawPath) {
   return path.resolve(path.normalize(trimmed));
 }
 
+/**
+ * Token cooperativo per richiedere e verificare l'annullamento della scansione.
+ * Permette alla UI di arrestare il processo in qualsiasi momento rilasciando le risorse.
+ */
 class ScanCancellationToken {
   constructor() {
-
+    /** @type {boolean} Flag indicante se è stato richiesto l'annullamento. */
     this.isCancelled = false;
   }
 
+  /**
+   * Imposta il flag di annullamento e traccia l'evento nei log.
+   * @returns {void}
+   */
   cancel() {
     this.isCancelled = true;
     logger.info('[Scanner] Richiesta di interruzione scansione ricevuta (CancellationToken)');
   }
 }
 
+/**
+ * Verifica se un'estensione corrisponde a uno dei filtri specificati nella lista.
+ * Esegue il confronto in modo case-insensitive e tollera la presenza o assenza del punto iniziale.
+ *
+ * @param {string} ext Estensione del file con punto (es. '.jpg').
+ * @param {string[]} list Lista di estensioni ammesse o escluse.
+ * @returns {boolean} True se l'estensione corrisponde.
+ */
 function extensionMatches(ext, list) {
   if (!Array.isArray(list) || list.length === 0) {
     return false;
@@ -41,6 +78,18 @@ function extensionMatches(ext, list) {
   });
 }
 
+/**
+ * Attraversa ricorsivamente una cartella raccogliendo tutti i file che superano i filtri base.
+ * Ignora i symlink per evitare cicli infiniti ed errori di permessi.
+ *
+ * @param {string} dirPath Cartella da esplorare.
+ * @param {Object} criteria Criteri di filtraggio e scansione.
+ * @param {ScanCancellationToken|null} token Token per interruzione anticipata.
+ * @param {function(Object): void} [onProgress] Callback per notifiche di avanzamento UI.
+ * @param {Array<Object>} collectedFiles Accumulatore dei file candidati.
+ * @param {Object} skipStats Contatori diagnostici dei file scartati dai filtri.
+ * @returns {Promise<void>}
+ */
 async function walkDirectory(dirPath, criteria, token, onProgress, collectedFiles, skipStats) {
   if (token && token.isCancelled) {
     return;
@@ -162,6 +211,14 @@ async function walkDirectory(dirPath, criteria, token, onProgress, collectedFile
   }
 }
 
+/**
+ * Costruisce una chiave composita per il bucket preliminare in base ai criteri attivi.
+ * Tutti i file con la stessa chiave hanno identici valori per i criteri selezionati.
+ *
+ * @param {Object} file Oggetto rappresentante il file candidato.
+ * @param {Object} criteria Criteri attivi di scansione.
+ * @returns {string} Chiave composita (es. 'size:1024|name:test.txt').
+ */
 function buildBucketKey(file, criteria) {
   const keyParts = [];
   if (criteria.matchSize) {
@@ -174,7 +231,7 @@ function buildBucketKey(file, criteria) {
     keyParts.push('ext:' + file.extension.toLowerCase());
   }
   if (criteria.matchDate) {
-
+    // Risoluzione al secondo per evitare discrepanze minime nei millisecondi del filesystem
     keyParts.push('date:' + Math.floor(file.mtimeMs / 1000));
   }
   const key = keyParts.length > 0 ? keyParts.join('|') : 'all';
@@ -185,6 +242,13 @@ const CRITERION_ORDER = Object.freeze(['size', 'name', 'fuzzy', 'extension', 'da
 
 const MATCH_REASONS = new Set(CRITERION_ORDER);
 
+/**
+ * Restituisce l'elenco dei criteri effettivamente soddisfatti dal raggruppamento.
+ *
+ * @param {Object} criteria Criteri richiesti dall'utente.
+ * @param {{ hashed?: boolean, fuzzyApplied?: boolean }} [flags] Stato dell'hashing e del fuzzy matching.
+ * @returns {string[]} Array ordinato dei criteri attivi (es. ['size', 'hash']).
+ */
 function listMatchedCriteria(criteria, flags) {
   const opts = criteria && typeof criteria === 'object' ? criteria : {};
   const hashed = !!(flags && flags.hashed);
@@ -213,6 +277,13 @@ function listMatchedCriteria(criteria, flags) {
   return applied;
 }
 
+/**
+ * Determina il motivo principale di corrispondenza per il gruppo (usato come fallback di raggruppamento).
+ *
+ * @param {Object} criteria
+ * @param {{ hashed?: boolean, fuzzyApplied?: boolean }} [flags]
+ * @returns {string} Identificatore del criterio principale (es. 'hash' o 'size').
+ */
 function classifyMatchReason(criteria, flags) {
   const list = listMatchedCriteria(criteria, flags);
   if (list.length === 0) {
@@ -222,6 +293,14 @@ function classifyMatchReason(criteria, flags) {
   return list[0];
 }
 
+/**
+ * Ordina i file all'interno di un singolo gruppo duplicati.
+ * Ordinamento stabile: prima per data di modifica crescente (il più vecchio per primo -> File #1),
+ * a parità di data per percorso alfabetico case-insensitive.
+ *
+ * @param {Array<Object>} files Lista dei file del gruppo.
+ * @returns {Array<Object>} Lista ordinata.
+ */
 function sortFilesInGroup(files) {
   return (files || []).slice().sort(function (a, b) {
     const ta = Number(a && a.mtimeMs) || 0;
@@ -235,6 +314,14 @@ function sortFilesInGroup(files) {
   });
 }
 
+/**
+ * Ordina l'intero insieme dei gruppi duplicati e assegna i groupId progressivi (1..N).
+ * L'ordinamento è prioritariamente per dimensione totale del gruppo (decrescente: i file che
+ * occupano più spazio appaiono in cima), poi per nome/percorso.
+ *
+ * @param {Array<Object>} groups Gruppi duplicati grezzi.
+ * @returns {Array<Object>} Gruppi ordinati con groupId sequenziale 1..N.
+ */
 function orderResultGroups(groups) {
   const ordered = (groups || []).slice().sort(function (a, b) {
     const sa = Number(a && a.size) || 0;
@@ -258,6 +345,15 @@ function orderResultGroups(groups) {
   return ordered;
 }
 
+/**
+ * Trasforma i cluster grezzi di file in oggetti gruppo pronti per il Renderer.
+ * Calcola i byte sprecati (`wastedBytes`), associa l'hash identificativo e applica
+ * l'ordinamento deterministico finale.
+ *
+ * @param {Array<Array<Object>>} rawGroups Array di cluster contenenti i file duplicati.
+ * @param {string[]} matchedCriteria Elenco dei criteri AND soddisfatti dal gruppo.
+ * @returns {Array<Object>} Gruppi duplicati formattati per la UI.
+ */
 function formatDuplicateGroups(rawGroups, matchedCriteria) {
   const list = Array.isArray(matchedCriteria)
     ? matchedCriteria.filter(function (key) {
@@ -288,6 +384,13 @@ function formatDuplicateGroups(rawGroups, matchedCriteria) {
   return orderResultGroups(mapped);
 }
 
+/**
+ * Valida, deduplica e normalizza l'elenco delle cartelle fornite per la scansione.
+ *
+ * @param {unknown} directories Array di percorsi cartelle grezze.
+ * @returns {string[]} Array di percorsi assoluti validi e univoci.
+ * @throws {Error} Se non è fornita alcuna cartella valida.
+ */
 function normalizeScanDirectories(directories) {
   if (!Array.isArray(directories) || directories.length === 0) {
     throw new Error('Specificare almeno una cartella da scansionare');
@@ -308,6 +411,16 @@ function normalizeScanDirectories(directories) {
   return normalized;
 }
 
+/**
+ * Funzione principale di deduplicazione: esegue la scansione delle cartelle, applica i filtri,
+ * effettua i confronti e restituisce l'elenco finale dei duplicati.
+ *
+ * @param {string[]} directories Percorsi delle cartelle da analizzare.
+ * @param {Object} criteria Criteri di ricerca (matchSize, matchHash, matchName, minSize, ecc.).
+ * @param {ScanCancellationToken|null} token Token cooperativo per l'annullamento.
+ * @param {function(Object): void} [onProgress] Callback per inviare lo stato di avanzamento alla UI.
+ * @returns {Promise<Array<Object>>} Gruppi di file duplicati individuati.
+ */
 async function findDuplicates(directories, criteria, token, onProgress) {
   const roots = normalizeScanDirectories(directories);
   const opts = criteria && typeof criteria === 'object' ? criteria : {};

@@ -2,7 +2,7 @@
  * @file logger.js
  * @description Modulo centralizzato di tracciamento e logging per DUPLO.
  * Configura electron-log per consentire un logging capillare su console in ambiente di sviluppo
- * e su file fisico persistente in ambiente di produzione (AppData su Windows, Application Support su macOS, .config su Linux).
+ * e su file fisico persistente in ambiente di produzione (AppData su Windows, .config su Linux).
  * 
  * Ogni operazione critica, scansione, hashing, errore o evento UI transita attraverso questo logger.
  */

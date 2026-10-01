@@ -23,10 +23,9 @@ DUPLO/
 ├── build/
 │   ├── icon.svg                 # master vettoriale (lente + due documenti)
 │   ├── icon.png                 # Linux / tray (512×512)
-│   ├── icon.ico                 # Windows — OBBLIGATORIO prima di dist:win
-│   └── icon.icns                # macOS
+│   └── icon.ico                 # Windows — OBBLIGATORIO prima di dist:win
 ├── scripts/
-│   ├── generate-icons.js        # PNG → ICO + ICNS (`npm run icons`)
+│   ├── generate-icons.js        # PNG → ICO (`npm run icons`)
 │   ├── flattenWinZip.js         # ZIP: cartella omonima all'archivio (non win-unpacked)
 │   └── applyWinIcon.js          # afterPack: timbra icon.ico su DUPLO.exe
 └── src/
@@ -84,12 +83,11 @@ npm start
 | --- | --- |
 | `npm start` | App in sviluppo (`electron .`) |
 | `npm test` | Test hasher, scanner, fuzzy, ZIP nominato, igiene package (niente FFmpeg), categorie, splitter, drop, menu, README |
-| `npm run icons` | Rigenera `icon.ico` e `icon.icns` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
+| `npm run icons` | Rigenera `icon.ico` da `icon.png` — **esegui prima della build Windows se l’ico non c’è** |
 | `npm run dist:win:x64` | ZIP Windows 64-bit (`electron-builder --win zip --x64` → `DUPLO-<versione>-win-x64.zip`) |
 | `npm run dist:win:ia32` | ZIP Windows 32-bit (`electron-builder --win zip --ia32` → `DUPLO-<versione>-win-ia32.zip`) |
 | `npm run dist:win` / `npm run dist` | ZIP Windows 64-bit e 32-bit insieme |
 | `npm run dist:linux` | `dist/linux-unpacked/` |
-| `npm run dist:mac` | `dist/mac-unpacked/` (**solo su macOS**) |
 
 La finestra non si può rimpicciolire sotto **920×700** px (`minWidth` / `minHeight`): così header, sidebar e risultati non si sovrappongono. Il layout usa flex/grid e media query per adattarsi alle risoluzioni più strette.
 

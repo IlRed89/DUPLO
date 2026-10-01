@@ -167,35 +167,14 @@ function normalizeLanguage(lang) {
  */
 function buildMenuTemplate(lang, actions = {}) {
   const t = MENU_STRINGS[lang] || MENU_STRINGS.it;
-  const isMac = process.platform === 'darwin';
 
   /** @type {Electron.MenuItemConstructorOptions[]} */
   const template = [];
 
-  // Su macOS il primo menu è il nome dell'app (convenzione Apple).
-  if (isMac) {
-    template.push({
-      label: t.appMenu,
-      submenu: [
-        { role: 'about', label: t.appMenu },
-        { type: 'separator' },
-        { role: 'services' },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit', label: t.fileQuit }
-      ]
-    });
-  }
-
   template.push({
     label: t.file,
     submenu: [
-      isMac
-        ? { role: 'close', label: t.windowClose }
-        : { role: 'quit', label: t.fileQuit }
+      { role: 'quit', label: t.fileQuit }
     ]
   });
 

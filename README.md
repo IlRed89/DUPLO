@@ -69,9 +69,8 @@ Lo zip contiene una cartella **con lo stesso nome dell'archivio** (es. `DUPLO-1.
 | Windows ARM64 | arm64 | — | Non in questa release |
 | Linux | x64 | `DUPLO-1.0.0-linux-x64.zip` | Sì |
 | Linux | x86 32-bit | — | No (Electron 33 non pubblica runtime ia32) |
-| macOS | — | build locale `npm run dist:mac` | Solo compilazione su Mac |
 
-Su Linux scarica lo zip, estrai e avvia `./DUPLO` (`chmod +x DUPLO` se serve). Su macOS la cartella unpacked va compilata su un Mac: dentro trovi `DUPLO.app`.
+Su Linux scarica lo zip, estrai e avvia `./DUPLO` (`chmod +x DUPLO` se serve).
 
 ---
 
@@ -110,7 +109,7 @@ DUPLO **non** usa FFmpeg: gli hash sono solo SHA-256/MD5 con il modulo nativo `c
 
 L’eseguibile prende l’icona da **`build/icon.ico`** (`build.win.icon` in `package.json`). **Devi avere questo file nel repo prima di `npm run dist:win`**: se manca, Windows mostra l’icona Electron di default.
 
-- Per rigenerarla dal PNG master: `npm run icons` (scrive `build/icon.ico` e `build/icon.icns`).
+- Per rigenerarla dal PNG master: `npm run icons` (scrive `build/icon.ico`).
 - In build Linux→Windows electron-builder non lancia rcedit (`signAndEditExecutable: false`). Lo hook `scripts/applyWinIcon.js` timbra comunque il `.ico` sull’exe con `resedit`.
 
 ---
@@ -260,14 +259,12 @@ Il nome cartella dell’app è `duplo` (campo `name` in `package.json`). Percors
 | Sistema | Percorso |
 | --- | --- |
 | **Windows** | `%USERPROFILE%\AppData\Roaming\duplo\logs\main.log` |
-| **macOS** | `~/Library/Logs/duplo/main.log` |
 | **Linux** | `~/.config/duplo/logs/main.log` |
 
 Come aprirli in un clic:
 
 - Nell’app: pulsante **File di Log** (mostra il path esatto su *questa* macchina).
 - **Windows:** `Win + R` → incolla `%USERPROFILE%\AppData\Roaming\duplo\logs` → Invio.
-- **macOS:** Finder → Vai → Vai alla cartella… → `~/Library/Logs/duplo`.
 - **Linux:** file manager o `xdg-open ~/.config/duplo/logs`.
 
 Nella stessa cartella possono comparire file ruotati (`main.old.log` o simili). Allega **tutta la cartella** `logs` a una issue su GitHub.

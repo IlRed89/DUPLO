@@ -114,7 +114,7 @@ overlay_asar() {
   python3 - "$unpacked" <<'PY'
 import os, sys
 root = sys.argv[1]
-skip_ext = {'.png', '.ico', '.icns', '.woff', '.woff2', '.ttf', '.bin', '.node', '.dll', '.exe', '.pak', '.dat'}
+skip_ext = {'.png', '.ico', '.woff', '.woff2', '.ttf', '.bin', '.node', '.dll', '.exe', '.pak', '.dat'}
 count = 0
 leftover = []
 for dirpath, _, files in os.walk(root):

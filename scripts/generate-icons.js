@@ -4,14 +4,13 @@
  * da electron-builder:
  *   - icon.png  (512×512, Linux / tray / fallback)
  *   - icon.ico  (Windows, più risoluzioni)
- *   - icon.icns (macOS)
  *
  * Uso:
  *   npm run icons
  *
  * Dipendenze: `png2icons` (già in devDependencies) e, per rasterizzare l'SVG,
  * Google Chrome in headless. Se Chrome non è disponibile, lo script riusa
- * `build/icon.png` già presente e rigenera solo .ico / .icns.
+ * `build/icon.png` già presente e rigenera solo .ico.
  */
 
 const { execFileSync } = require('child_process');
@@ -23,7 +22,6 @@ const BUILD_DIR = path.join(__dirname, '..', 'build');
 const SVG_PATH = path.join(BUILD_DIR, 'icon.svg');
 const PNG_PATH = path.join(BUILD_DIR, 'icon.png');
 const ICO_PATH = path.join(BUILD_DIR, 'icon.ico');
-const ICNS_PATH = path.join(BUILD_DIR, 'icon.icns');
 
 /**
  * Rasterizza l'SVG solo se GENERATE_ICONS_RASTER=1 (Chrome headless).
@@ -90,12 +88,6 @@ function main() {
   if (!ico) throw new Error('png2icons.createICO ha restituito null');
   fs.writeFileSync(ICO_PATH, ico);
   console.log('[icons] scritto', ICO_PATH, `(${ico.length} byte)`);
-
-  // ICNS macOS: tutte le dimensioni Apple (inclusa @2x).
-  const icns = png2icons.createICNS(pngBuffer, png2icons.BICUBIC, 0);
-  if (!icns) throw new Error('png2icons.createICNS ha restituito null');
-  fs.writeFileSync(ICNS_PATH, icns);
-  console.log('[icons] scritto', ICNS_PATH, `(${icns.length} byte)`);
   console.log('[icons] PNG sorgente', PNG_PATH, `(${pngBuffer.length} byte)`);
 }
 

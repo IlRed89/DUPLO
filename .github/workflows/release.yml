@@ -18,8 +18,6 @@ jobs:
             script: dist
           - os: ubuntu-latest
             script: dist:linux
-          - os: macos-latest
-            script: dist:mac
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
     permissions: write-all

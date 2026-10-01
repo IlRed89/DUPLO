@@ -44,12 +44,6 @@ function unpackedDirForZip(zipPath, outDir) {
   if (base.includes('linux')) {
     return path.join(outDir, 'linux-unpacked');
   }
-  if (base.includes('mac') && (base.includes('arm64') || base.includes('arm'))) {
-    return path.join(outDir, 'mac-arm64');
-  }
-  if (base.includes('mac')) {
-    return path.join(outDir, 'mac');
-  }
   return path.join(outDir, 'win-unpacked');
 }
 

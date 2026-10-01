@@ -274,10 +274,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   logger.info('[Main] Tutte le finestre sono state chiuse');
-  if (process.platform !== 'darwin') {
-    logger.info('[Main] Arresto applicazione');
-    app.quit();
-  }
+  logger.info('[Main] Arresto applicazione');
+  app.quit();
 });
 
 // =========================================================================

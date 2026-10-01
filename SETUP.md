@@ -1,6 +1,6 @@
 # Setup di DUPLO
 
-**Versione 1.0.0** · Windows, macOS e Linux
+**Versione 1.0.0** · Windows e Linux
 
 DUPLO non è un unico exe portatile: la release è una **cartella** con l'eseguibile e i file di runtime. Estrai tutto lo zip e avvia il binario **dalla stessa cartella**.
 
@@ -13,8 +13,6 @@ File dalla [pagina Releases](https://github.com/IlRed89/DUPLO/releases/latest):
 | `DUPLO-1.0.0-win-x64.zip` | Windows 64-bit |
 | `DUPLO-1.0.0-win-ia32.zip` | Windows 32-bit |
 | `DUPLO-1.0.0-linux-x64.zip` | Linux 64-bit |
-| `DUPLO-1.0.0-mac-arm64.zip` | macOS Apple Silicon |
-| `DUPLO-1.0.0-mac-x64.zip` | macOS Intel |
 
 Confronta l'hash con `SHA256SUMS.txt` nella stessa release.
 
@@ -33,21 +31,6 @@ Lo zip contiene una cartella **con lo stesso nome dell'archivio** (es. `DUPLO-1.
 2. Estrai la cartella omonima e avvia `./DUPLO` (`chmod +x DUPLO` se serve).
 
 Linux 32-bit non è disponibile (Electron 33 non pubblica più un runtime ia32).
-
-## macOS
-
-1. Scarica `DUPLO-1.0.0-mac-arm64.zip` (Apple Silicon) oppure `DUPLO-1.0.0-mac-x64.zip` (Intel).
-2. Estrai e apri **DUPLO.app**.
-3. Se Gatekeeper blocca: tasto destro sul bundle → **Apri**. L'app non è firmata con Apple Developer ID.
-
-Build locale su un Mac:
-
-```bash
-git clone https://github.com/IlRed89/DUPLO.git
-cd DUPLO
-npm install
-npm run dist:mac
-```
 
 ## Dopo l'avvio
 

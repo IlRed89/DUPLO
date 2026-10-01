@@ -18,7 +18,6 @@
     "dist:win:x64": "electron-builder --win zip --x64",
     "dist:win:ia32": "electron-builder --win zip --ia32",
     "dist:linux": "electron-builder --linux zip --x64",
-    "dist:mac": "electron-builder --mac zip --x64 --arm64",
     "pack": "electron-builder --dir",
     "flatten-zips": "node -e \"require('./scripts/flattenWinZip')({outDir:'dist',artifactPaths:require('fs').readdirSync('dist').filter(f=>f.endsWith('.zip')).map(f=>'dist/'+f)})\""
   },
@@ -91,22 +90,6 @@
         "sha256"
       ]
     },
-    "mac": {
-      "target": [
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "icon": "build/icon.icns",
-      "category": "public.app-category.utilities",
-      "identity": null,
-      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
-      "executableName": "DUPLO"
-    },
     "linux": {
       "target": [
         {
@@ -137,7 +120,6 @@
     "duplicate-files",
     "desktop",
     "windows",
-    "linux",
-    "macos"
+    "linux"
   ]
 }
