@@ -1,0 +1,26 @@
+name: Clean GitHub Release Mac Assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup-mac-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Mac assets from v1.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Verifica asset presenti nella release v1.0.0:"
+          gh release view v1.0.0 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name'
+          
+          echo "Rimozione asset Mac..."
+          gh release delete-asset v1.0.0 "DUPLO-1.0.0-mac-arm64.zip" --repo "${GITHUB_REPOSITORY}" --yes || true
+          gh release delete-asset v1.0.0 "DUPLO-1.0.0-mac-x64.zip" --repo "${GITHUB_REPOSITORY}" --yes || true
+          
+          echo "Completato. Asset rimanenti:"
+          gh release view v1.0.0 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name'
