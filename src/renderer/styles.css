@@ -199,6 +199,13 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
+.brand-text h1 .badge-engine {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+  letter-spacing: 0.02em;
+}
+
 .brand-text p {
   font-size: 0.75rem;
   color: var(--text-muted);

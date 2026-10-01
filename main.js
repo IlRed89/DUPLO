@@ -263,6 +263,17 @@ app.whenReady().then(() => {
   } catch (err) {
     logger.error(`[Main] Menu nativo non applicato: ${err.message}`);
   }
+
+  // Se su Windows, assicura la disponibilità del motore Everything (avviando l'istanza embedded se assente)
+  if (process.platform === 'win32') {
+    try {
+      const { ensureEverythingEngine } = require('./src/everythingScanner');
+      ensureEverythingEngine().catch((err) => {
+        logger.warn(`[Main] Inizializzazione motore Everything fallita: ${err.message}`);
+      });
+    } catch (_err) {}
+  }
+
   createWindow();
 
   app.on('activate', () => {
@@ -276,6 +287,13 @@ app.on('window-all-closed', () => {
   logger.info('[Main] Tutte le finestre sono state chiuse');
   logger.info('[Main] Arresto applicazione');
   app.quit();
+});
+
+app.on('will-quit', () => {
+  try {
+    const { stopEmbeddedEverything } = require('./src/everythingScanner');
+    stopEmbeddedEverything();
+  } catch (_err) {}
 });
 
 // =========================================================================
@@ -605,3 +623,20 @@ ipcMain.on('log:renderer', (_event, payload) => {
   const validLevel = ['info', 'warn', 'error', 'debug'].includes(level) ? level : 'info';
   logger[validLevel](`[RendererUI] ${message}`);
 });
+
+/**
+ * Verifica lo stato di disponibilità di Everything (Voidtools) nel sistema.
+ *
+ * @returns {Promise<{available: boolean, platform: string}>}
+ */
+ipcMain.handle('everything:status', async () => {
+  try {
+    const { isEverythingRunning } = require('./src/everythingScanner');
+    const available = await isEverythingRunning();
+    return { available: !!available, platform: process.platform };
+  } catch (err) {
+    logger.warn(`[IPC] everything:status fallito: ${err.message}`);
+    return { available: false, platform: process.platform };
+  }
+});
+

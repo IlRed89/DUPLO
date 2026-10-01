@@ -341,7 +341,13 @@ contextBridge.exposeInMainWorld('duploAPI', {
    * @param {function(Object): void} callback
    * @returns {function(): void}
    */
-  onScanProgress: (callback) => subscribeChannel('scan:progress', (data) => callback(data))
+  onScanProgress: (callback) => subscribeChannel('scan:progress', (data) => callback(data)),
+
+  /**
+   * Verifica se il motore Everything è attivo e disponibile.
+   * @returns {Promise<{available: boolean, platform: string}>}
+   */
+  getEverythingStatus: () => ipcRenderer.invoke('everything:status')
 });
 
 /**

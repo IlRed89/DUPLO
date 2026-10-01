@@ -222,12 +222,24 @@ const dom = {
   emptyPlaceholderText: document.getElementById('emptyPlaceholderText'),
   btnBatchClean: document.getElementById('btnBatchClean'),
   btnDeleteSelected: document.getElementById('btnDeleteSelected'),
-  dragOverlay: document.getElementById('drag-overlay')
+  dragOverlay: document.getElementById('drag-overlay'),
+  everythingEngineBadge: document.getElementById('everythingEngineBadge')
 };
 
 document.addEventListener('DOMContentLoaded', function () {
   initPreferences().then(function () {
     logToMain('info', t('log.uiInit'));
+
+    // Verifica automatica disponibilità motore Everything
+    if (window.duploAPI && typeof window.duploAPI.getEverythingStatus === 'function') {
+      window.duploAPI.getEverythingStatus().then(function (status) {
+        if (status && status.available && dom.everythingEngineBadge) {
+          dom.everythingEngineBadge.style.display = 'inline-block';
+          logToMain('info', 'Motore ultra-rapido Everything rilevato e abilitato');
+        }
+      }).catch(function () {});
+    }
+
     if (dom.btnAddFolder) {
       dom.btnAddFolder.addEventListener('click', onAddFolderClick);
     }

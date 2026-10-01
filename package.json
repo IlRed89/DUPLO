@@ -54,6 +54,7 @@
       "build/icon.ico",
       "build/icon.svg",
       "package.json",
+      "bin/**/*",
       "!dist/*",
       "!dist/**",
       "!.github/*",
@@ -68,6 +69,10 @@
       {
         "from": "README.md",
         "to": "README.md"
+      },
+      {
+        "from": "bin",
+        "to": "bin"
       }
     ],
     "win": {

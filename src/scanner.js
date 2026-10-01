@@ -20,6 +20,7 @@ const path = require('path');
 const { logger } = require('./logger');
 const { computePartialHash, computeFullHash } = require('./hasher');
 const { clusterByFuzzyName, FUZZY_NAME_THRESHOLD } = require('./fuzzyName');
+const { isEverythingRunning, walkWithEverything } = require('./everythingScanner');
 
 /**
  * Normalizza un percorso rendendolo assoluto e consistente tra piattaforme diverse (Windows / Linux).
@@ -433,11 +434,31 @@ async function findDuplicates(directories, criteria, token, onProgress) {
   const allFiles = [];
   const skipStats = { tooSmall: 0, tooLarge: 0, wrongExt: 0, tooOld: 0, tooNew: 0 };
 
+  // Verifica preliminare se Everything è attivo per velocizzare la raccolta su Windows
+  const everythingAvailable = await isEverythingRunning();
+  if (everythingAvailable) {
+    logger.info('[Scanner] Indicizzazione ultra-rapida con Everything ATTIVA');
+  }
+
   for (const dir of roots) {
     if (token && token.isCancelled) {
       break;
     }
-    await walkDirectory(dir, opts, token, onProgress, allFiles, skipStats);
+
+    let usedEverything = false;
+    if (everythingAvailable) {
+      try {
+        usedEverything = await walkWithEverything(dir, opts, token, onProgress, allFiles, skipStats);
+      } catch (err) {
+        logger.warn(`[Scanner] Scansione Everything fallita per "${dir}": ${err.message}. Eseguo fallback su walk standard.`);
+        usedEverything = false;
+      }
+    }
+
+    if (!usedEverything) {
+      // Fallback sullo scanner filesystem ricorsivo standard
+      await walkDirectory(dir, opts, token, onProgress, allFiles, skipStats);
+    }
   }
 
   logger.info('[Scanner] File scartati dai filtri avanzati: ' + JSON.stringify(skipStats));

@@ -6,7 +6,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) · Release: [github.com/IlRed89/DUPLO/re
 
 **DUPLO** trova i file duplicati sul computer e ti aiuta a eliminarli in sicurezza. Non si ferma al nome: può confrontare **dimensione**, **contenuto** (hash SHA-256 o MD5 con `crypto` nativo), **estensione**, **nome** e **data di modifica**. Due file sono considerati identici solo se superano **tutti** i criteri che hai selezionato (scansione cumulativa **AND**).
 
-Funzionalità chiave: hash rapido a due step, ricerca **Nomi Simili (Fuzzy)**, gruppi sequenziali **Gruppo 1..N**, numerazione **File #1, #2, #3…** con selezione dal 2° in poi, modale di rinomina a tema, tema chiaro/scuro e quattro lingue (italiano predefinito, inglese, spagnolo, francese).
+Funzionalità chiave: **motore ultra-rapido Everything (NTFS MFT) integrato** con fallback trasparente, hash rapido a due step, ricerca **Nomi Simili (Fuzzy)**, gruppi sequenziali **Gruppo 1..N**, numerazione **File #1, #2, #3…** con selezione dal 2° in poi, modale di rinomina a tema, tema chiaro/scuro e quattro lingue (italiano predefinito, inglese, spagnolo, francese).
 
 Questo file è il manuale dell'applicazione. Lo trovi anche **dentro il programma**: in alto a destra apri **Guida**, oppure dal menu nativo **Aiuto → Guida (README)** (F1).
 
