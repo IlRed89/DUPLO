@@ -346,6 +346,7 @@ function walkWithEverything(directory, criteria, token, onProgress, collectedFil
     });
 
     child.on('close', (code) => {
+      logger.debug(`[Everything] Processo es.exe terminato con exitCode=${code}, raccolti ${collectedFiles.length} file`);
       if (failed) {
         resolve(false);
       } else if (code === 0 || collectedFiles.length > 0) {

@@ -196,6 +196,18 @@ function createWindow() {
     logger.warn(`[Main] setWindowOpenHandler fallito: ${err.message}`);
   }
 
+  mainWindow.on('unresponsive', () => {
+    logger.warn('[Main] La finestra principale non risponde (unresponsive)');
+  });
+
+  mainWindow.on('responsive', () => {
+    logger.info('[Main] La finestra principale ha ripreso a rispondere (responsive)');
+  });
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    logger.error(`[CRITICAL] Renderer process terminato o andato in crash: ragione=${details && details.reason} exitCode=${details && details.exitCode}`);
+  });
+
   mainWindow.on('page-title-updated', (event) => {
     event.preventDefault();
     if (mainWindow && !mainWindow.isDestroyed()) {

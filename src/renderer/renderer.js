@@ -226,6 +226,22 @@ const dom = {
   everythingEngineBadge: document.getElementById('everythingEngineBadge')
 };
 
+// Intercettazione globale errori JS ed eccezioni asincrone nel Renderer
+window.addEventListener('error', function (event) {
+  const msg = (event && event.message) || 'Errore JS sconosciuto';
+  const file = (event && event.filename) || '';
+  const line = (event && event.lineno) || '';
+  const col = (event && event.colno) || '';
+  const stack = (event && event.error && event.error.stack) || '';
+  logToMain('error', `[Renderer Uncaught] ${msg} (${file}:${line}:${col}) Stack: ${stack}`);
+});
+
+window.addEventListener('unhandledrejection', function (event) {
+  const reason = (event && event.reason);
+  const stack = (reason && reason.stack) || String(reason || '');
+  logToMain('error', `[Renderer UnhandledRejection] ${stack}`);
+});
+
 document.addEventListener('DOMContentLoaded', function () {
   initPreferences().then(function () {
     logToMain('info', t('log.uiInit'));

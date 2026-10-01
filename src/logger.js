@@ -69,13 +69,29 @@ function logSystemInfo() {
   log.info('======================================================');
   log.info(' Avvio DUPLO in corso...');
   log.info('======================================================');
-  log.info(`Piattaforma:       ${process.platform} (${os.type()} ${os.release()})`);
-  log.info(`Architettura CPU:  ${process.arch}`);
+  log.info(`Data/Ora locale:   ${new Date().toISOString()}`);
+  log.info(`Piattaforma:       ${process.platform} (${os.type()} ${os.release()} ${os.arch()})`);
+  log.info(`Architettura CPU:  ${process.arch} (${os.cpus() ? os.cpus().length : 'N/A'} core - ${os.cpus() && os.cpus()[0] ? os.cpus()[0].model : ''})`);
+  log.info(`Memoria di sistema: Totale: ${(os.totalmem() / (1024 * 1024 * 1024)).toFixed(2)} GB, Libera: ${(os.freemem() / (1024 * 1024 * 1024)).toFixed(2)} GB`);
   log.info(`Versione Node.js:  ${process.versions.node}`);
   log.info(`Versione Electron: ${process.versions.electron || 'N/A'}`);
+  log.info(`Versione V8:       ${process.versions.v8 || 'N/A'}`);
+  log.info(`Process PID:       ${process.pid}`);
+  log.info(`Exec Path:         ${process.execPath}`);
+  log.info(`Cwd:               ${process.cwd()}`);
   log.info(`File di log:       ${getLogFilePath()}`);
   log.info('======================================================');
 }
+
+// Cattura e logga automaticamente ogni uncaughtException nel Main Process
+process.on('uncaughtException', (err) => {
+  log.error('[CRITICAL] Eccezione non gestita (uncaughtException) nel Main Process:', err && err.stack ? err.stack : err);
+});
+
+// Cattura e logga automaticamente ogni unhandledRejection nel Main Process
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('[CRITICAL] Promise rifiutata non gestita (unhandledRejection) nel Main Process:', reason && reason.stack ? reason.stack : reason);
+});
 
 module.exports = {
   logger: log,
